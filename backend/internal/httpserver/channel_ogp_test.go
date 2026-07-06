@@ -5,7 +5,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgtype"
 
-	db "tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/generated/db"
+	db "github.com/mamemomonga/mamechat/backend/internal/generated/db"
 )
 
 func TestBuildChannelOGPDataIncludesChannelAndOwner(t *testing.T) {

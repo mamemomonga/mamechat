@@ -9,7 +9,7 @@ import (
 	"github.com/coder/websocket"
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/auth"
+	"github.com/mamemomonga/mamechat/backend/internal/auth"
 )
 
 const (

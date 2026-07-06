@@ -10,11 +10,11 @@ import (
 	"syscall"
 	"time"
 
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/config"
-	db "tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/generated/db"
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/realtime"
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/store"
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/tts"
+	"github.com/mamemomonga/mamechat/backend/internal/config"
+	db "github.com/mamemomonga/mamechat/backend/internal/generated/db"
+	"github.com/mamemomonga/mamechat/backend/internal/realtime"
+	"github.com/mamemomonga/mamechat/backend/internal/store"
+	"github.com/mamemomonga/mamechat/backend/internal/tts"
 )
 
 func main() {

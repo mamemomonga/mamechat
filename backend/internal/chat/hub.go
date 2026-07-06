@@ -14,7 +14,7 @@ import (
 	"github.com/coder/websocket"
 	"github.com/jackc/pgx/v5/pgtype"
 
-	db "tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/generated/db"
+	db "github.com/mamemomonga/mamechat/backend/internal/generated/db"
 )
 
 // プレゼンスのアバター一覧に出す来訪者の最大件数。数字(のべ人数)は全体を示す。

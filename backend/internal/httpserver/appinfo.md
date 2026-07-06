@@ -15,7 +15,7 @@
 
 ### リポジトリ
 
-- 公開リポジトリ: [tangled.org/mamemomonga.bsky.social/ex-wschat1](https://tangled.org/@mamemomonga.bsky.social/ex-wschat1)
+- 公開リポジトリ: [github.com/mamemomonga/mamechat](https://github.com/mamemomonga/mamechat)
 - ライセンスや貢献方法はリポジトリを参照してください。
 
 ### 使用している主なソフトウェア

@@ -9,8 +9,8 @@ import (
 	"strings"
 	"unicode"
 
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/ttsautodict"
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/voicevox"
+	"github.com/mamemomonga/mamechat/backend/internal/ttsautodict"
+	"github.com/mamemomonga/mamechat/backend/internal/voicevox"
 )
 
 var (

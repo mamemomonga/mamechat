@@ -16,7 +16,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-const migrationLockName = "tangled.org/mamemomonga.bsky.social/ex-wschat1:migrations"
+const migrationLockName = "github.com/mamemomonga/mamechat:migrations"
 
 func Open(ctx context.Context, databaseURL string) (*pgxpool.Pool, error) {
 	cfg, err := pgxpool.ParseConfig(databaseURL)

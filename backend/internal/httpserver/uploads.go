@@ -13,7 +13,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/uploads"
+	"github.com/mamemomonga/mamechat/backend/internal/uploads"
 )
 
 // stagedImage は Valkey に一時保存する、アップロード済み未投稿の画像/動画のメタ情報。

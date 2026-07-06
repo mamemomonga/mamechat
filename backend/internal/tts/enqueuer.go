@@ -12,9 +12,9 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/chat"
-	db "tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/generated/db"
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/voicevox"
+	"github.com/mamemomonga/mamechat/backend/internal/chat"
+	db "github.com/mamemomonga/mamechat/backend/internal/generated/db"
+	"github.com/mamemomonga/mamechat/backend/internal/voicevox"
 )
 
 // ErrTTSDisabled は読み上げ機能が無効なときに返す。

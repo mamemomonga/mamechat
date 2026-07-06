@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"os"
 
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/webpush"
+	"github.com/mamemomonga/mamechat/backend/internal/webpush"
 )
 
 func main() {

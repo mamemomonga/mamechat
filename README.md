@@ -1,6 +1,6 @@
 # mamechat
 
-将来の音声配信サービスに向けた、セルフホスト可能なチャットMVPです。現在の対象は、PostgreSQLへの永続化とValkey Pub/Sub配信を備えたWebSocketチャットです。LiveKitはまだ実装していませんが、後からLiveKit token発行を追加しやすいように、ルームには安定したslugを持たせています。
+セルフホスト可能なチャットMVPです。現在の対象は、PostgreSQLへの永続化とValkey Pub/Sub配信を備えたWebSocketチャットです。ルームには安定したslugを持たせています。
 
 ## 技術スタック
 
@@ -15,8 +15,8 @@
 クローンとビルド
 
 ```sh
-$ git clone git@tangled.org:mamemomonga.bsky.social/ex-wschat1
-$ cd ex-wschat1
+$ git clone git@github.com:mamemomonga/mamechat.git
+$ cd mamechat
 $ cp .env.example .env
 $ vim .env
 OWNER_PASSWORD=hogehoge
@@ -279,6 +279,21 @@ URLリンク化が有効なチャンネルでは、投稿本文の最初のURL�
 
 システム上のデフォルトは「使用しない」です。ユーザー設定行がまだ存在しないユーザーには、初回セッション取得時に従来どおりランダムなVOICEVOXキャラクターを割り当てます。チャット画面の「読み上げ」ボタンをONにすると、受信した音声URLを順番に再生します。
 
-## 将来のLiveKit追加方針
+## 依存する外部ソフトウェアとクレジット
 
-このMVPにはLiveKitを含めていません。次の段階では、PostgreSQL上のチャンネル参加権限や権限情報を確認したうえでLiveKit room tokenを発行するメディアサービスを追加する想定です。`channels.slug` は、安定したLiveKit room名として使うか、別途メディアルーム対応表を持つ場合のlookup keyとして使える想定です。
+mamechatは、TTS（読み上げ）機能のために既定で以下の外部ソフトウェアに依存します。これらはmamechat本体とは別のプロセス／コンテナとして動作し、mamechatはHTTP APIまたはコマンドライン経由で呼び出します（mamechatのバイナリには静的リンクしません）。
+
+- **[VOICEVOX ENGINE](https://github.com/VOICEVOX/voicevox_engine)** — 音声合成エンジン。Composeでは独立したコンテナ（`voicevox/voicevox_engine` イメージ）として起動し、mamechatはHTTP APIで音声を生成します。
+- **[ffmpeg](https://ffmpeg.org/)** — 音声・動画の変換に使用します。TTSではVOICEVOXが生成したWAVをAAC-LC（M4A）へ、画像・動画アップロードでは各種入力をH.264 MP4へ変換します。backendコンテナ内でCLIとして別プロセス起動します。
+
+TTSを利用しない場合（`TTS_ENABLED=false`）はVOICEVOX ENGINEを起動する必要はありません。ただし画像・動画のアップロード変換ではffmpeg（`ffmpeg` / `ffprobe`）を利用します。
+
+### VOICEVOXキャラクターの利用規約について
+
+VOICEVOX ENGINEで生成した音声を公開・配布する場合は、各キャラクター（音源）ごとの利用規約に従い、必要なクレジット表記（例: `VOICEVOX:ずんだもん`）を行ってください。これはmamechatのソフトウェアライセンス（MIT）とは別に、生成された音声そのものに課される条件です。詳細は [VOICEVOX 公式サイトの利用規約](https://voicevox.hiroshiba.jp/) を確認してください。運営者・利用者の責任で遵守してください。
+
+## ライセンス
+
+mamechat本体は [MIT License](./LICENSE) で公開しています（製作者: mamemomonga）。
+
+VOICEVOX ENGINE（LGPL 等）およびffmpeg（LGPL / GPL）は、それぞれ独立したプロセス／コンテナとしてAPI・CLI経由で呼び出す構成のため、mamechat本体のソースコードのライセンス（MIT）には影響しません。これらのソフトウェア自体、および配布物（例: ffmpegを同梱するDockerイメージ）を再配布する場合は、各ソフトウェアのライセンス条件に従ってください。

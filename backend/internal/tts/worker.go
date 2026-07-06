@@ -14,8 +14,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/chat"
-	db "tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/generated/db"
+	"github.com/mamemomonga/mamechat/backend/internal/chat"
+	db "github.com/mamemomonga/mamechat/backend/internal/generated/db"
 )
 
 type Worker struct {

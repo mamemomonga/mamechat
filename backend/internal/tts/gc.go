@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	db "tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/generated/db"
+	db "github.com/mamemomonga/mamechat/backend/internal/generated/db"
 )
 
 func StartGC(ctx context.Context, q *db.Queries, interval time.Duration) {

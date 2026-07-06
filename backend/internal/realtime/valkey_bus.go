@@ -10,7 +10,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/chat"
+	"github.com/mamemomonga/mamechat/backend/internal/chat"
 )
 
 // アクティブ判定の既定有効期間。ビーコン間隔を十分に上回る値にし、1回の取りこぼしで

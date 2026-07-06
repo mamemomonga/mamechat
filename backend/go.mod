@@ -1,4 +1,4 @@
-module tangled.org/mamemomonga.bsky.social/ex-wschat1/backend
+module github.com/mamemomonga/mamechat/backend
 
 go 1.23.0
 

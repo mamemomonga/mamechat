@@ -3,7 +3,7 @@ package realtime
 import (
 	"context"
 
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/chat"
+	"github.com/mamemomonga/mamechat/backend/internal/chat"
 )
 
 type Bus interface {

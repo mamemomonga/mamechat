@@ -9,10 +9,10 @@ import (
 	"net/url"
 	"strings"
 
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/access"
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/auth"
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/mastodon"
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/misskey"
+	"github.com/mamemomonga/mamechat/backend/internal/access"
+	"github.com/mamemomonga/mamechat/backend/internal/auth"
+	"github.com/mamemomonga/mamechat/backend/internal/mastodon"
+	"github.com/mamemomonga/mamechat/backend/internal/misskey"
 )
 
 var errUnresolvableEntry = errors.New("入力からユーザーを特定できませんでした")

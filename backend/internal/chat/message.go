@@ -7,8 +7,8 @@ import (
 
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/auth"
-	db "tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/generated/db"
+	"github.com/mamemomonga/mamechat/backend/internal/auth"
+	db "github.com/mamemomonga/mamechat/backend/internal/generated/db"
 )
 
 const DefaultMessageBodyLen = 400

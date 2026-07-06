@@ -11,8 +11,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	db "tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/generated/db"
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/webpush"
+	db "github.com/mamemomonga/mamechat/backend/internal/generated/db"
+	"github.com/mamemomonga/mamechat/backend/internal/webpush"
 )
 
 // pushSubscriptionBody はブラウザの PushSubscription.toJSON() をそのまま受け取る形。

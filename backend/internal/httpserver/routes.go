@@ -19,17 +19,17 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/access"
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/atproto"
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/auth"
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/chat"
-	db "tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/generated/db"
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/mastodon"
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/misskey"
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/store"
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/tts"
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/ttsautodict"
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/voicevox"
+	"github.com/mamemomonga/mamechat/backend/internal/access"
+	"github.com/mamemomonga/mamechat/backend/internal/atproto"
+	"github.com/mamemomonga/mamechat/backend/internal/auth"
+	"github.com/mamemomonga/mamechat/backend/internal/chat"
+	db "github.com/mamemomonga/mamechat/backend/internal/generated/db"
+	"github.com/mamemomonga/mamechat/backend/internal/mastodon"
+	"github.com/mamemomonga/mamechat/backend/internal/misskey"
+	"github.com/mamemomonga/mamechat/backend/internal/store"
+	"github.com/mamemomonga/mamechat/backend/internal/tts"
+	"github.com/mamemomonga/mamechat/backend/internal/ttsautodict"
+	"github.com/mamemomonga/mamechat/backend/internal/voicevox"
 )
 
 var slugPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{6,48}[a-z0-9]$`)

@@ -8,18 +8,18 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/atproto"
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/auth"
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/chat"
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/config"
-	db "tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/generated/db"
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/mastodon"
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/misskey"
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/ogp"
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/realtime"
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/tts"
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/uploads"
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/webpush"
+	"github.com/mamemomonga/mamechat/backend/internal/atproto"
+	"github.com/mamemomonga/mamechat/backend/internal/auth"
+	"github.com/mamemomonga/mamechat/backend/internal/chat"
+	"github.com/mamemomonga/mamechat/backend/internal/config"
+	db "github.com/mamemomonga/mamechat/backend/internal/generated/db"
+	"github.com/mamemomonga/mamechat/backend/internal/mastodon"
+	"github.com/mamemomonga/mamechat/backend/internal/misskey"
+	"github.com/mamemomonga/mamechat/backend/internal/ogp"
+	"github.com/mamemomonga/mamechat/backend/internal/realtime"
+	"github.com/mamemomonga/mamechat/backend/internal/tts"
+	"github.com/mamemomonga/mamechat/backend/internal/uploads"
+	"github.com/mamemomonga/mamechat/backend/internal/webpush"
 )
 
 type Server struct {

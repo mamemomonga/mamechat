@@ -17,8 +17,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/access"
-	db "tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/generated/db"
+	"github.com/mamemomonga/mamechat/backend/internal/access"
+	db "github.com/mamemomonga/mamechat/backend/internal/generated/db"
 )
 
 // app_settings のキー。

@@ -37,7 +37,7 @@ const (
 	maxRedirects   = 5
 	maxTitleLen    = 300
 	maxDescLen     = 500
-	requestUA      = "ex-wschat1-ogp/1.0 (+link preview bot)"
+	requestUA      = "mamechat-ogp/1.0 (+link preview bot)"
 	acceptLanguage = "ja,en;q=0.8"
 )
 

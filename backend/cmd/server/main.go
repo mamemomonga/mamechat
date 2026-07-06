@@ -7,11 +7,11 @@ import (
 	"os"
 	"time"
 
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/auth"
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/config"
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/httpserver"
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/realtime"
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/store"
+	"github.com/mamemomonga/mamechat/backend/internal/auth"
+	"github.com/mamemomonga/mamechat/backend/internal/config"
+	"github.com/mamemomonga/mamechat/backend/internal/httpserver"
+	"github.com/mamemomonga/mamechat/backend/internal/realtime"
+	"github.com/mamemomonga/mamechat/backend/internal/store"
 )
 
 func main() {

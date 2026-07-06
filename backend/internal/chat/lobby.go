@@ -10,7 +10,7 @@ import (
 
 	"github.com/coder/websocket"
 
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/auth"
+	"github.com/mamemomonga/mamechat/backend/internal/auth"
 )
 
 // lobbyRefreshInterval はロビー（チャンネル一覧）プレゼンスの再構築・再配信間隔。

@@ -15,9 +15,9 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/config"
-	db "tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/generated/db"
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/voicevox"
+	"github.com/mamemomonga/mamechat/backend/internal/config"
+	db "github.com/mamemomonga/mamechat/backend/internal/generated/db"
+	"github.com/mamemomonga/mamechat/backend/internal/voicevox"
 )
 
 type UserSnapshot struct {

@@ -10,7 +10,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	db "tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/generated/db"
+	db "github.com/mamemomonga/mamechat/backend/internal/generated/db"
 )
 
 var channelOGPTemplate = template.Must(template.New("channel-ogp").Parse(`<!doctype html>

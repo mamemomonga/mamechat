@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"tangled.org/mamemomonga.bsky.social/ex-wschat1/backend/internal/config"
+	"github.com/mamemomonga/mamechat/backend/internal/config"
 )
 
 const (
