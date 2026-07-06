@@ -1001,6 +1001,14 @@ func (s *Server) adminDeleteChannel(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to delete channel")
 		return
 	}
+	// このノードのメモリ状態・在室接続・アクティブ集合を破棄し、他ノードにも退出を通知する。
+	// 同じ slug で作り直しても旧 channel_id が残らないようにする。
+	s.hub.DropChannel(slug)
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
+	if err := s.bus.Publish(ctx, slug, chat.ChannelKicked(slug)); err != nil {
+		slog.Error("publish channel deleted failed", "channel", slug, "error", err)
+	}
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
 
@@ -1506,7 +1514,9 @@ func (s *Server) deleteChannel(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to delete channel")
 		return
 	}
-	// 接続中のクライアントを退出させる（フロントは channel.kicked で一覧へ戻る）。
+	// このノードのメモリ状態・在室接続・アクティブ集合を破棄する（旧 channel_id を残さない）。
+	s.hub.DropChannel(channel.Slug)
+	// 接続中のクライアントを退出させる（フロントは channel.kicked で一覧へ戻る）。他ノード向け。
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 	if err := s.bus.Publish(ctx, channel.Slug, chat.ChannelKicked(channel.Slug)); err != nil {

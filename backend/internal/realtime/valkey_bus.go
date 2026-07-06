@@ -130,6 +130,15 @@ func (b *ValkeyBus) RemoveActive(ctx context.Context, channelSlug, userID string
 	return nil
 }
 
+// ClearActive はチャンネルのアクティブ集合を丸ごと消す（チャンネル削除・slug再作成時）。
+// 削除された旧チャンネルのアクティブ状態が同じ slug の新チャンネルに残らないようにする。
+func (b *ValkeyBus) ClearActive(ctx context.Context, channelSlug string) error {
+	if err := b.client.Del(ctx, presenceKey(channelSlug)).Err(); err != nil {
+		return fmt.Errorf("clear active %s: %w", channelSlug, err)
+	}
+	return nil
+}
+
 // ── チャンネル並び順（最終投稿順）のキャッシュ ──────────────────────────
 // 並び順はリアルタイムでなくてよいので、最終投稿順に並べたslug配列をTTL付きで
 // キャッシュする。サスペンド状態は別途DBから都度取得して反映する。

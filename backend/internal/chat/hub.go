@@ -28,6 +28,7 @@ var ErrNotOperating = errors.New("channel is not operating")
 type PresenceStore interface {
 	MarkActive(ctx context.Context, channelSlug, userID string) error
 	RemoveActive(ctx context.Context, channelSlug, userID string) error
+	ClearActive(ctx context.Context, channelSlug string) error
 	ActiveUserIDs(ctx context.Context, channelSlug string) (map[string]struct{}, error)
 }
 
@@ -111,6 +112,33 @@ func NewHub(bus RealtimeBus, presence PresenceStore, q *db.Queries, grace time.D
 
 func (h *Hub) Register(ctx context.Context, client *Client) error {
 	h.mu.Lock()
+	// 同じ slug が別の channel_id で作り直された（削除→同名で再作成）場合、メモリ上の
+	// 旧エントリは古い channel_id を握ったままなので、プレゼンスが旧チャンネルの
+	// （CASCADE削除済みの）来訪者を参照して空になる。古いエントリを破棄して作り直す。
+	if stale := h.channels[client.ChannelSlug]; stale != nil && stale.channelID != client.ChannelID {
+		delete(h.channels, client.ChannelSlug)
+		staleClients := make([]*Client, 0, len(stale.clients))
+		for c := range stale.clients {
+			staleClients = append(staleClients, c)
+		}
+		stale.cancel()
+		if stale.unsubscribe != nil {
+			if err := stale.unsubscribe(); err != nil {
+				slog.Warn("unsubscribe stale channel failed", "channel", client.ChannelSlug, "error", err)
+			}
+		}
+		if ps, ok := h.suspendTimers[client.ChannelSlug]; ok {
+			ps.timer.Stop()
+			delete(h.suspendTimers, client.ChannelSlug)
+		}
+		h.mu.Unlock()
+		for _, c := range staleClients {
+			_ = c.Conn.Close(websocket.StatusGoingAway, "channel recreated")
+		}
+		// 旧 channel_id のアクティブ集合を消し、のべ人数/アクティブ数の水増しを防ぐ。
+		h.clearActive(client.ChannelSlug)
+		h.mu.Lock()
+	}
 	ch := h.channels[client.ChannelSlug]
 	if ch == nil {
 		chCtx, cancel := context.WithCancel(context.Background())
@@ -365,6 +393,9 @@ func (h *Hub) runChannel(ctx context.Context, channelSlug string, ch <-chan Serv
 			case "channel.presence.refresh":
 				// 他ノードからの再構築要請。クライアントには配信しない。
 				h.broadcastPresence(channelSlug)
+			case "channel.kicked":
+				// チャンネル削除の通知。このノードの在室者へ通知して退出させる（切断でエントリも消える）。
+				h.kickAll(channelSlug)
 			case "channel.suspended":
 				// 準備中への移行確定。各ノードの営業状態を更新してカウントダウンを止め、
 				// 通知を配信して在室中の非オーナーを切断する。
@@ -566,6 +597,53 @@ func (h *Hub) publishRefresh(channelSlug string) {
 	if err := h.bus.Publish(ctx, channelSlug, PresenceRefresh(channelSlug)); err != nil {
 		slog.Warn("publish presence refresh failed", "channel", channelSlug, "error", err)
 	}
+}
+
+// clearActive はチャンネルのアクティブ集合(Valkey)を丸ごと消す。
+func (h *Hub) clearActive(channelSlug string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	if err := h.presence.ClearActive(ctx, channelSlug); err != nil {
+		slog.Warn("clear active failed", "channel", channelSlug, "error", err)
+	}
+}
+
+// DropChannel はチャンネル削除時に、このノードのメモリ状態・在室接続・アクティブ集合を
+// 即座に破棄する。在室クライアントへは channel.kicked を通知してから切断する。
+// 他ノードには別途 channel.kicked をバス配信し、runChannel 側で同様に切断させる。
+func (h *Hub) DropChannel(channelSlug string) {
+	h.mu.Lock()
+	ch := h.channels[channelSlug]
+	var clients []*Client
+	if ch != nil {
+		delete(h.channels, channelSlug)
+		for c := range ch.clients {
+			clients = append(clients, c)
+		}
+		ch.cancel()
+		if ch.unsubscribe != nil {
+			if err := ch.unsubscribe(); err != nil {
+				slog.Warn("unsubscribe dropped channel failed", "channel", channelSlug, "error", err)
+			}
+		}
+	}
+	if ps, ok := h.suspendTimers[channelSlug]; ok {
+		ps.timer.Stop()
+		delete(h.suspendTimers, channelSlug)
+	}
+	h.mu.Unlock()
+
+	for _, client := range clients {
+		conn := client.Conn
+		if client.Enqueue(ChannelKicked(channelSlug)) {
+			time.AfterFunc(2*time.Second, func() {
+				_ = conn.Close(websocket.StatusGoingAway, "channel deleted")
+			})
+		} else {
+			_ = conn.Close(websocket.StatusGoingAway, "channel deleted")
+		}
+	}
+	h.clearActive(channelSlug)
 }
 
 func formatTime(t time.Time) string {
@@ -923,6 +1001,31 @@ func (h *Hub) RequestExtendOperating(ctx context.Context, channelSlug string, du
 func (h *Hub) RequestSuspendNow(ctx context.Context, channelSlug string) error {
 	h.suspendChannel(channelSlug)
 	return nil
+}
+
+// kickAll はチャンネル削除時に、このノードの在室者を全員切断する。
+// 切断で各クライアントの Unregister が走り、空になればローカルのチャンネル状態も消える。
+func (h *Hub) kickAll(channelSlug string) {
+	h.mu.Lock()
+	ch := h.channels[channelSlug]
+	var kicked []*Client
+	if ch != nil {
+		for client := range ch.clients {
+			kicked = append(kicked, client)
+		}
+	}
+	h.mu.Unlock()
+
+	for _, client := range kicked {
+		conn := client.Conn
+		if client.Enqueue(ChannelKicked(channelSlug)) {
+			time.AfterFunc(2*time.Second, func() {
+				_ = conn.Close(websocket.StatusGoingAway, "channel deleted")
+			})
+		} else {
+			_ = conn.Close(websocket.StatusGoingAway, "channel deleted")
+		}
+	}
 }
 
 // kickNonOwners はサスペンド確定時に在室中の非オーナーを切断する。
