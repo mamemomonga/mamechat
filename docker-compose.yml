@@ -1,0 +1,117 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: app
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  valkey:
+    image: valkey/valkey:8-alpine
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  voicevox:
+    image: voicevox/voicevox_engine:cpu-ubuntu20.04-latest
+    expose:
+      - "50021"
+
+  voicevox-2:
+    image: voicevox/voicevox_engine:cpu-ubuntu20.04-latest
+    expose:
+      - "50021"
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      APP_ENV: development
+      SERVICE_NAME: ${SERVICE_NAME:-mamechat}
+      HTTP_ADDR: :8080
+      DATABASE_URL: postgres://app:app@postgres:5432/app?sslmode=disable
+      REDIS_URL: redis://valkey:6379/0
+      SESSION_COOKIE_NAME: app_session
+      SESSION_TTL_HOURS: 2160
+      SESSION_COOKIE_SECURE: "false"
+      CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:-http://localhost:5173}
+      OWNER_PASSWORD: ${OWNER_PASSWORD:?OWNER_PASSWORD is required}
+      OWNER_DISPLAY_NAME: ${OWNER_DISPLAY_NAME:-Owner}
+      OWNER_HANDLE: ${OWNER_HANDLE:-owner.local}
+      OWNER_AVATAR_URL: ${OWNER_AVATAR_URL:-}
+      ATPROTO_PUBLIC_BASE_URL: ${ATPROTO_PUBLIC_BASE_URL:-http://localhost:8080}
+      ATPROTO_AUTH_SERVER_URL: ${ATPROTO_AUTH_SERVER_URL:-https://bsky.social}
+      ATPROTO_PUBLIC_API_URL: ${ATPROTO_PUBLIC_API_URL:-https://public.api.bsky.app}
+      ATPROTO_OAUTH_SCOPE: ${ATPROTO_OAUTH_SCOPE:-atproto transition:generic}
+      ATPROTO_LOGIN_REDIRECT_URL: ${ATPROTO_LOGIN_REDIRECT_URL:-http://localhost:5173}
+      CHANNEL_SUSPEND_RETENTION_HOURS: ${CHANNEL_SUSPEND_RETENTION_HOURS:-24}
+      CHANNEL_SUSPEND_GRACE_MINUTES: ${CHANNEL_SUSPEND_GRACE_MINUTES:-0}
+      ACTIVE_POLL_SECONDS: ${ACTIVE_POLL_SECONDS:-15}
+      BEACON_SECONDS: ${BEACON_SECONDS:-10}
+      ACTIVE_WINDOW_SECONDS: ${ACTIVE_WINDOW_SECONDS:-30}
+      UPLOAD_STORAGE_DIR: /storage/uploads
+      UPLOAD_MEDIA_MAX_BYTES: ${UPLOAD_MEDIA_MAX_BYTES:-20971520}
+      UPLOAD_VIDEO_MAX_SECONDS: ${UPLOAD_VIDEO_MAX_SECONDS:-30}
+      TTS_ENABLED: ${TTS_ENABLED:-true}
+      TTS_STORAGE_DIR: /storage/tts
+      TTS_VOICEVOX_URLS: http://voicevox:50021,http://voicevox-2:50021
+      TTS_VOICEVOX_ENGINE_VERSION: ${TTS_VOICEVOX_ENGINE_VERSION:-voicevox-unknown}
+      TTS_MAX_PENDING_PER_CHANNEL: ${TTS_MAX_PENDING_PER_CHANNEL:-5}
+      TTS_WORKER_CONCURRENCY: ${TTS_WORKER_CONCURRENCY:-2}
+      TTS_GC_INTERVAL_MINUTES: ${TTS_GC_INTERVAL_MINUTES:-60}
+      # Web Push (VAPID)。未設定だとPush通知は無効。make vapid-keygen で生成。
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:admin@localhost}
+    volumes:
+      - tts-data:/storage/tts
+      - uploads-data:/storage/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+
+  tts-worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: ["/bin/tts-worker"]
+    environment:
+      APP_ENV: development
+      DATABASE_URL: postgres://app:app@postgres:5432/app?sslmode=disable
+      REDIS_URL: redis://valkey:6379/0
+      OWNER_PASSWORD: ${OWNER_PASSWORD:?OWNER_PASSWORD is required}
+      TTS_ENABLED: ${TTS_ENABLED:-true}
+      TTS_STORAGE_DIR: /storage/tts
+      TTS_VOICEVOX_URLS: http://voicevox:50021,http://voicevox-2:50021
+      TTS_VOICEVOX_ENGINE_VERSION: ${TTS_VOICEVOX_ENGINE_VERSION:-voicevox-unknown}
+      TTS_MAX_PENDING_PER_CHANNEL: ${TTS_MAX_PENDING_PER_CHANNEL:-5}
+      TTS_WORKER_CONCURRENCY: ${TTS_WORKER_CONCURRENCY:-2}
+      TTS_GC_INTERVAL_MINUTES: ${TTS_GC_INTERVAL_MINUTES:-60}
+    volumes:
+      - tts-data:/storage/tts
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+      voicevox:
+        condition: service_started
+      voicevox-2:
+        condition: service_started
+
+volumes:
+  postgres-data:
+  tts-data:
+  uploads-data:

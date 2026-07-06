@@ -1,0 +1,26 @@
+services:
+  backend:
+    environment:
+      APP_ENV: production
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      CORS_ALLOWED_ORIGIN: ${PROD_CORS_ALLOWED_ORIGIN:-http://localhost:8080}
+      ATPROTO_PUBLIC_BASE_URL: ${ATPROTO_PUBLIC_BASE_URL:-http://localhost:8080}
+      ATPROTO_LOGIN_REDIRECT_URL: ${ATPROTO_LOGIN_REDIRECT_URL:-http://localhost:8080}
+
+  tts-worker:
+    environment:
+      APP_ENV: production
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile.prod
+    ports:
+      # cloudflared はホストの localhost 経由で到達するため 127.0.0.1 バインドに限定する。
+      # 外部から直接叩けなくすることで CF-Connecting-IP のなりすましを防ぐ（実IPログの信頼性）。
+      - "127.0.0.1:${PROD_HTTP_PORT:-8080}:80"
+    volumes:
+      # コンプライアンス用アクセスログをホストへ永続化し、ホスト側 logrotate で保全する。
+      - ${NGINX_LOG_DIR:-./logs/nginx}:/var/log/nginx
+    depends_on:
+      - backend

@@ -1,0 +1,26 @@
+# mamechat: nginx コンプライアンス用アクセスログの logrotate 設定（ホスト側で運用）。
+#
+# 導入:
+#   1) 下のパスを、実際の NGINX_LOG_DIR（compose の frontend が /var/log/nginx にバインドマウント
+#      するホストディレクトリ。既定は <リポジトリ>/logs/nginx）の絶対パスに合わせる。
+#   2) sudo cp deploy/logrotate/nginx-mamechat /etc/logrotate.d/nginx-mamechat
+#   3) sudo chown root:root /etc/logrotate.d/nginx-mamechat && sudo chmod 644 /etc/logrotate.d/nginx-mamechat
+#   4) テスト: sudo logrotate -d /etc/logrotate.d/nginx-mamechat   （-d はドライラン）
+#
+# 保持期間はコンプライアンス要件に合わせて rotate の値を調整する（daily×365=約1年）。
+# copytruncate を使うのは、ログ書き込み中の nginx（別コンテナ）へシグナルを送らずに
+# ローテートするため。厳密に取りこぼしを避けたい場合は copytruncate を外し、postrotate で
+# `docker exec <frontendコンテナ名> nginx -s reopen` を実行する方式に変える。
+
+/PATH/TO/logs/nginx/access.log /PATH/TO/logs/nginx/error.log {
+    daily
+    rotate 365
+    missingok
+    notifempty
+    compress
+    delaycompress
+    copytruncate
+    dateext
+    dateformat -%Y%m%d
+    su root root
+}

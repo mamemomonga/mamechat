@@ -1,0 +1,28 @@
+services:
+  postgres:
+    ports:
+      - "5432:5432"
+
+  valkey:
+    ports:
+      - "6379:6379"
+
+  backend:
+    environment:
+      APP_ENV: development
+      SESSION_COOKIE_SECURE: "false"
+      CORS_ALLOWED_ORIGIN: http://localhost:5173
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    environment:
+      VITE_API_BASE_URL: http://localhost:8080
+      VITE_WS_BASE_URL: ws://localhost:8080
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend

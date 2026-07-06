@@ -1,0 +1,21 @@
+{
+  "name": "mamechat",
+  "short_name": "mamechat",
+  "description": "セルフホスト可能なWebSocketチャット",
+  "lang": "ja",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#14171a",
+  "theme_color": "#14171a",
+  "prefer_related_applications": false,
+  "related_applications": [
+    { "platform": "webapp", "url": "/manifest.json" }
+  ],
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

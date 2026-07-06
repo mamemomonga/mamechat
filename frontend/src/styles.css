@@ -1,0 +1,3686 @@
+:root {
+  /* プロ用メディア機器（ラックマウント/コンソール）を思わせる、
+     ダークグレー基調＋クールなシアンティールのアクセント配色。 */
+  --bg: #14171a; /* 最背面 */
+  --surface: #1f242a; /* パネル・カード面 */
+  --surface-raised: #272d34; /* 少し浮いた面（ヘッダー・操作子） */
+  --surface-sunken: #181c20; /* 沈んだ面（入力欄・一覧の不在項目） */
+  --surface-hover: #2b323a; /* ホバー時の面 */
+  --border: #353c44; /* 標準ボーダー */
+  --border-strong: #4a525c; /* 強調ボーダー・ツマミ枠 */
+  --border-soft: #2a3037; /* テーブル等の細い罫線 */
+  --text: #d8dde2; /* 本文 */
+  --text-muted: #8b949e; /* 補助テキスト */
+  --text-dim: #6b747d; /* さらに控えめ */
+  --accent: #1f9e94; /* 主アクセント（クールなティール） */
+  --accent-hover: #28b3a8;
+  --accent-bright: #34d3c3; /* アクティブ表示などの発光色 */
+  --accent-bg: #14302d; /* アクセントの沈んだ背景 */
+  --accent-border: #2a5a54;
+  --accent-text: #4fc7bc; /* ダーク上で読めるアクセント文字 */
+  --steel: #45565f; /* セカンダリ操作（スチール調） */
+  --owner: #d4a017; /* オーナー識別（琥珀） */
+  --solid-ok: #1f8f86; /* 白文字を載せる実アクセント */
+  --solid-warn: #8f6a17;
+  --solid-danger: #a83541;
+  --danger-text: #ec6b76; /* 危険系の文字 */
+  --danger-bg: #2a1619;
+  --danger-border: #5a2930;
+  --warn-text: #d9a93a;
+  --warn-bg: #2a2310;
+  --warn-border: #574716;
+  --led-on: #ff2a2a; /* 録音インジケータ風の赤LED */
+  --led-off: #0a0a0a;
+  --overlay: rgb(0 0 0 / 58%); /* モーダル背景 */
+  --shadow: 0 14px 36px rgb(0 0 0 / 50%);
+
+  color: var(--text);
+  background: var(--bg);
+  color-scheme: dark;
+  accent-color: var(--accent);
+  --channel-info-handle-height: 2.6rem;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-synthesis: none;
+  line-height: 1.5;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: var(--bg);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button,
+.buttonLink {
+  border: 0;
+  border-radius: 6px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  padding: 0.65rem 0.95rem;
+  font-weight: 700;
+}
+
+button:hover,
+.buttonLink:hover {
+  background: var(--accent-hover);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.srOnly {
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.appShell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.topBar {
+  align-items: center;
+  background: var(--surface-raised);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  padding: 0.45rem clamp(1rem, 4vw, 3rem);
+  position: sticky;
+  top: 0;
+  /* チャンネルヘッダー(z-index:2)より前面に置きユーザーメニューのドロップダウンが
+     隠れないようにしつつ、モバイルのドロワー(overlay:30/content:31/handle:35)より
+     背面に収め、ドロワーがトップバーに突き抜けないようにする。 */
+  z-index: 20;
+}
+
+.brand {
+  font-weight: 800;
+}
+
+/* モバイル(コンパクト)のチャンネルページでは、サービス名を折り返さず小さく表示する
+   （サービス名タップでチャンネル一覧へ戻れる）。 */
+.appShell:has(.compactChannelRoomHeader) .topBar .brand {
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.topBar nav {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+}
+
+.loginNavButton {
+  background: var(--accent);
+  border-radius: 6px;
+  color: #fff;
+  font-weight: 800;
+  padding: 0.55rem 0.85rem;
+}
+
+.userMenu {
+  position: relative;
+}
+
+.userMenuButton {
+  align-items: center;
+  background: transparent;
+  border-radius: 999px;
+  display: flex;
+  height: 38px;
+  justify-content: center;
+  padding: 0;
+  width: 38px;
+}
+
+.userMenuButton .avatar {
+  height: 34px;
+  width: 34px;
+}
+
+.userDropdown {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 0.25rem;
+  min-width: 190px;
+  padding: 0.45rem;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.55rem);
+  z-index: 10;
+}
+
+.userDropdownHeader {
+  border-bottom: 1px solid var(--border);
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.45rem 0.55rem 0.65rem;
+}
+
+.userDropdownHeader span {
+  color: var(--text-muted);
+  font-size: 0.86rem;
+}
+
+.userDropdown a,
+.userDropdown button {
+  background: transparent;
+  border-radius: 6px;
+  color: var(--text);
+  display: block;
+  font-weight: 700;
+  padding: 0.55rem;
+  text-align: left;
+  width: 100%;
+}
+
+.userDropdown a:hover,
+.userDropdown button:hover {
+  background: var(--surface-hover);
+}
+
+main {
+  flex: 1;
+  margin: 0 auto;
+  max-width: 1180px;
+  padding: clamp(1rem, 4vw, 2rem);
+  width: 100%;
+}
+
+h1,
+h2,
+p {
+  margin-top: 0;
+}
+
+.contentColumn,
+.narrowPanel,
+.settingsPanel,
+.chatPage,
+.adminPage {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.2rem;
+}
+
+.narrowPanel {
+  margin: 2rem auto;
+  max-width: 520px;
+}
+
+.settingsPanel {
+  margin: 2rem auto;
+  max-width: 860px;
+}
+
+/* 設定の左ナビ + コンテンツの2カラム */
+.settingsLayout {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: 180px 1fr;
+  margin-top: 1rem;
+}
+
+.settingsNav {
+  align-content: start;
+  border-right: 1px solid var(--border);
+  display: grid;
+  gap: 0.25rem;
+  padding-right: 1rem;
+}
+
+.settingsNavLink {
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 0.55rem 0.7rem;
+  text-align: left;
+}
+
+.settingsNavLink:hover {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+
+.settingsNavLink.active {
+  background: var(--surface-raised);
+  box-shadow: inset 3px 0 0 var(--accent-text);
+  color: var(--accent-text);
+}
+
+.settingsContent {
+  min-width: 0;
+}
+
+/* コンテンツ内の先頭セクションは上線・上余白を消す（パネル直下と同じ見た目に） */
+.settingsContent > .settingsSection:first-of-type,
+.settingsContent > .formError:first-child + .settingsSection,
+.settingsContent > .formNotice:first-child + .settingsSection {
+  border-top: 0;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+@media (max-width: 720px) {
+  .settingsLayout {
+    gap: 1rem;
+    grid-template-columns: 1fr;
+  }
+
+  .settingsNav {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+    grid-auto-flow: column;
+    grid-template-columns: repeat(3, 1fr);
+    padding-bottom: 0.6rem;
+    padding-right: 0;
+  }
+
+  .settingsNavLink {
+    text-align: center;
+  }
+
+  .settingsNavLink.active {
+    box-shadow: inset 0 -3px 0 var(--accent-text);
+  }
+}
+
+.narrowPanel .commentText {
+  color: var(--text-dim);
+  font-size: 0.7rem;
+  text-align: right;
+  font-weight: normal;
+}
+
+.sectionHeader,
+.roomHeader {
+  align-items: flex-start;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.sectionHeader p,
+.roomHeader p {
+  color: var(--text-muted);
+  margin-bottom: 0;
+}
+
+.sessionBox {
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.sessionBox small {
+  color: var(--text-muted);
+}
+
+.channelList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+/* チャンネルカード：左にオーナーアバター＋営業状態、右に情報とリスナー。 */
+.channelCard {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.1rem 1rem;
+  padding: 1rem 1.25rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.channelCard:hover {
+  border-color: var(--accent);
+}
+
+.channelCard.suspended {
+  background: var(--surface-sunken);
+  border-color: var(--border);
+}
+
+/* 準備中カードはクリックで「開店したら通知」ダイアログを開く。 */
+.channelCardClickable {
+  cursor: pointer;
+}
+
+/* 開店通知ダイアログの誘導文。 */
+.notifyDialogLead {
+  color: var(--text);
+  font-weight: 700;
+  margin: 0;
+}
+
+.notifyDialogChannel {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+/* 準備中でクリック不可（非オーナー）。 */
+.channelCard.locked {
+  cursor: not-allowed;
+}
+
+.channelCard.locked:hover {
+  border-color: var(--border);
+}
+
+/* 左カラム：オーナーアバターと営業状態バッヂ。 */
+.channelCardSide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  width: 64px;
+}
+
+.channelOwnerAvatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid var(--border);
+}
+
+.channelOwnerAvatar .avatar {
+  width: 100%;
+  height: 100%;
+}
+
+/* オーナー在室＝明るく、不在＝暗く表示する。 */
+.channelOwnerAvatar.present {
+  border-color: #3fb950;
+  filter: none;
+  opacity: 1;
+}
+
+.channelOwnerAvatar.absent {
+  filter: grayscale(0.6) brightness(0.5);
+  opacity: 0.7;
+}
+
+.channelStatusBadge {
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 0.1rem 0.45rem;
+  white-space: nowrap;
+}
+
+.channelStatusBadge.open {
+  background: #3fb950;
+  color: #06240f;
+}
+
+.channelStatusBadge.resting {
+  background: var(--surface-raised);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+/* 営業中バッジの下の残り時間（時間制限なしは ∞）。 */
+.channelRemaining {
+  color: var(--text-muted);
+  font-family: ui-monospace, monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+}
+
+/* オーナー離席による自動閉店カウントダウン中は警告色で強調する。 */
+.channelRemaining.autoClose {
+  color: #f0a24b;
+}
+
+/* 右カラム：タイトル・開設日・説明・リスナー。 */
+.channelCardMain {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.channelCardHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.channelCardTitle {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.channelCardSlug {
+  color: var(--text-muted) !important;
+  font-size: 0.85rem;
+}
+
+.channelCardDesc {
+  color: var(--text-muted) !important;
+  margin: 0.1rem 0 0;
+}
+
+.channelCardListeners {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.55rem;
+  min-height: 32px;
+}
+
+.channelListener {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: inline-flex;
+}
+
+.channelListener .avatar {
+  width: 100%;
+  height: 100%;
+}
+
+.channelListener.inactive {
+  filter: grayscale(0.7);
+  opacity: 0.5;
+}
+
+@media (max-width: 560px) {
+  .channelCardHeader {
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+  .channelCardTitle {
+    font-size: 1.1rem;
+  }
+}
+
+.suspendBadge {
+  background: var(--solid-danger);
+  border-radius: 999px;
+  color: #fff !important;
+  font-size: 0.7rem;
+  font-weight: 800;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.5rem;
+  vertical-align: middle;
+}
+
+.roomHeaderActions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  /* チャンネル詳細の下に左寄せで並べる。 */
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.roomHeaderActions .buttonLink {
+  border-radius: 6px;
+  font-size: 0.82rem;
+  padding: 0.42rem 0.65rem;
+}
+
+/* 「設定」だけを右端へ寄せる（他ボタンは左寄せのまま）。 */
+.roomHeaderActions .secondaryLink {
+  margin-left: auto;
+}
+
+.ttsControls {
+  align-items: center;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* 読み上げトグルはハードウェアのボタン/インジケータを模す。 */
+.ttsToggle {
+  align-items: center;
+  background: var(--surface-raised);
+  border: 2px solid var(--border-strong);
+  border-radius: 8px;
+  color: var(--text);
+  display: inline-flex;
+  font-size: 0.82rem;
+  gap: 0.55rem;
+  padding: 0.34rem 0.72rem;
+}
+
+.ttsToggle.enabled {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+
+.ttsLed {
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 55%);
+  display: inline-block;
+  flex-shrink: 0;
+  height: 14px;
+  width: 14px;
+}
+
+.ttsLed.on {
+  background: #3fb950;
+  box-shadow:
+    0 0 7px rgb(63 185 80 / 75%),
+    inset 0 0 0 1px rgb(0 0 0 / 35%);
+}
+
+.ttsLed.off {
+  background: var(--led-off);
+}
+
+/* 営業中ボタンのLED: 緑点灯（営業中）/ 黄（準備へのカウントダウン）/ 緑消灯（準備中）。 */
+.ttsLed.operatingOn {
+  background: #3fb950;
+  box-shadow:
+    0 0 7px rgb(63 185 80 / 75%),
+    inset 0 0 0 1px rgb(0 0 0 / 35%);
+}
+
+.ttsLed.operatingPending {
+  background: #f5c518;
+  box-shadow:
+    0 0 7px rgb(245 197 24 / 80%),
+    inset 0 0 0 1px rgb(0 0 0 / 35%);
+}
+
+.ttsLed.operatingOff {
+  background: #143a1d;
+}
+
+.operatingToggle:disabled {
+  cursor: default;
+  opacity: 0.85;
+}
+
+.ttsClear {
+  background: var(--surface-raised);
+  border: 2px solid var(--border-strong);
+  color: var(--text);
+}
+
+.ttsDialogOverlay {
+  align-items: center;
+  background: var(--overlay);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 1rem;
+  position: fixed;
+  z-index: 40;
+}
+
+.ttsDialog {
+  background: var(--surface);
+  border: 2px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 1rem;
+  max-width: 430px;
+  padding: 1rem;
+  width: min(100%, 430px);
+}
+
+.ttsDialogTitle {
+  align-items: center;
+  display: inline-flex;
+  font-size: 1.05rem;
+  gap: 0.65rem;
+  margin: 0;
+}
+
+.ttsDialogVolume {
+  align-items: center;
+  color: var(--text-muted);
+  display: flex;
+  font-weight: 700;
+  gap: 0.7rem;
+}
+
+.ttsDialogVolume input {
+  flex: 1;
+  padding: 0;
+}
+
+.ttsDialogActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.ttsDialogActions button {
+  border-radius: 8px;
+  font-size: 1rem;
+  min-width: 7rem;
+  padding: 0.62rem 1.15rem;
+}
+
+.ttsDialogOn {
+  background: var(--steel);
+}
+
+.ttsDialogOff {
+  background: var(--solid-danger);
+}
+
+/* 営業中の状態バー（残り時間＋延長ボタン）。チャットの先頭に表示する。 */
+.operatingStatus {
+  align-items: center;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  gap: 0.6rem;
+  margin-bottom: 0.8rem;
+  padding: 0.5rem 0.75rem;
+}
+
+/* 操作ボタン群（設定・営業中・読み上げ・通知）の枠。背景はそのまま、角丸・枠線なしで
+   チャット領域の上端に全幅で密着させる（上・左右のパディングを負マージンで打ち消す）。 */
+.channelActionsBar {
+  align-items: center;
+  background: var(--surface-sunken);
+  border: 0;
+  border-radius: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: -1.2rem -1.2rem 0;
+  padding: 0.5rem 1.2rem;
+}
+
+/* 枠内の「設定」ボタンはLEDボタン(.ttsToggle)と同じ高さ・意匠に合わせる。 */
+.channelActionsBar .buttonLink {
+  align-items: center;
+  border: 2px solid var(--border-strong);
+  border-radius: 8px;
+  display: inline-flex;
+  font-size: 0.82rem;
+  padding: 0.34rem 0.72rem;
+}
+
+.operatingStatusLabel {
+  background: var(--solid-ok);
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 800;
+  padding: 0.15rem 0.6rem;
+}
+
+.operatingStatusTime {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.operatingStatusClock {
+  color: var(--text);
+  font-family: ui-monospace, monospace;
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-left: 0.2rem;
+}
+
+/* 残り時間の隣の延長ボタン（小さなアイコン）。 */
+.operatingExtendButton {
+  align-items: center;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 1rem;
+  height: 24px;
+  justify-content: center;
+  line-height: 1;
+  margin-left: auto;
+  min-width: 32px;
+  padding: 0 0.4rem;
+}
+
+.operatingExtendButton:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+/* 営業時間設定・延長ダイアログ。ttsDialog の見た目を流用しつつ専用の要素を足す。 */
+.operatingDialogHint {
+  color: var(--text-muted);
+  font-size: 0.86rem;
+  margin: 0 0 0.4rem;
+  text-align: center;
+}
+
+.operatingDurationGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.operatingDurationButton {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 700;
+  min-width: 6rem;
+  padding: 0.62rem 1rem;
+}
+
+.operatingDurationButton:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.operatingEndTimeForm {
+  align-items: end;
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
+}
+
+.operatingEndTimeField {
+  color: var(--text-muted);
+  display: grid;
+  font-size: 0.84rem;
+  gap: 0.35rem;
+  text-align: left;
+}
+
+.operatingEndTimeField input {
+  min-width: 0;
+  width: 100%;
+}
+
+.operatingDialogFooter {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: space-between;
+  margin-top: 1rem;
+}
+
+.operatingSuspendNowButton {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  color: var(--danger-text);
+  font-size: 0.9rem;
+  padding: 0.5rem 0.8rem;
+}
+
+.operatingStartButton {
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 0.5rem 1rem;
+}
+
+.operatingStartButton:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.operatingDialogClose {
+  background: var(--steel);
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+}
+
+.retentionControl {
+  align-items: center;
+  color: var(--text-muted);
+  display: flex;
+  font-size: 0.82rem;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+
+/* チェックボックスは全幅にせず、ラベルの直前に置く（「時間制限なし」が右に流れるのを防ぐ）。 */
+.retentionControl input[type="checkbox"] {
+  flex: none;
+  margin: 0;
+  width: auto;
+}
+
+.settingsSection {
+  border-top: 1px solid var(--border);
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+
+.narrowPanel > .settingsSection:first-of-type {
+  border-top: 0;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.settingRows {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.settingToggle,
+.settingRange,
+.settingField,
+.settingSelect {
+  align-items: center;
+  color: var(--text-muted);
+  display: flex;
+  font-weight: 700;
+  gap: 0.6rem;
+}
+
+.settingToggle input {
+  width: auto;
+}
+
+.settingSelect select {
+  margin-left: auto;
+  max-width: 220px;
+}
+
+/* テキスト入力（タイトル・説明）は縦並びで全幅にする。 */
+.settingFieldStacked {
+  align-items: stretch;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.settingFieldStacked input,
+.settingFieldStacked textarea {
+  width: 100%;
+}
+
+.settingFieldStacked textarea {
+  resize: vertical;
+}
+
+.settingRange input {
+  max-width: 180px;
+  padding: 0;
+}
+
+.settingField select {
+  max-width: 260px;
+}
+
+/* ヘッダーのアバター横に出すゴーストモードのバッヂ */
+.userMenuButton {
+  position: relative;
+}
+
+.ghostBadge {
+  bottom: -2px;
+  font-size: 0.85rem;
+  line-height: 1;
+  pointer-events: none;
+  position: absolute;
+  right: -8px;
+}
+
+/* チャンネル一覧の入室許可バッヂ（管理者・オーナーのみ表示） */
+.accessModeBadge {
+  background: var(--surface-sunken);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  color: var(--accent-text);
+  font-size: 0.68rem;
+  font-weight: 700;
+  margin-left: 0.5rem;
+  padding: 0.05rem 0.4rem;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+/* ゴーストモード中の書き込み不可の案内 */
+.ghostNotice {
+  background: var(--surface-sunken);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-weight: 700;
+  margin: 0;
+  padding: 0.7rem 0.9rem;
+  text-align: center;
+}
+
+/* 入室許可制御（ホワイト/ブラックリスト） */
+.accessModeChoices {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.8rem 0;
+}
+
+.accessModeChoice {
+  align-items: start;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.6rem;
+  padding: 0.6rem 0.8rem;
+}
+
+.accessModeChoice input {
+  grid-row: 1 / span 2;
+  margin-top: 0.2rem;
+  width: auto;
+}
+
+.accessModeChoiceLabel {
+  color: var(--text);
+  font-weight: 800;
+}
+
+.accessModeChoiceHint {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+
+.accessListEditor {
+  border-top: 1px dashed var(--border);
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 0.8rem;
+  padding-top: 0.8rem;
+}
+
+.accessHelp {
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 0.8rem;
+}
+
+.accessHelp summary {
+  color: var(--accent-text);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.accessHelpList {
+  color: var(--text-muted);
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.6rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.accessHelpList code {
+  background: var(--surface-raised);
+  border-radius: 4px;
+  font-size: 0.85em;
+  padding: 0.05rem 0.3rem;
+  word-break: break-all;
+}
+
+.accessAddRow {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.accessAddInput {
+  flex: 1;
+  min-width: 0;
+}
+
+.accessListCount {
+  margin: 0;
+}
+
+.accessList {
+  display: grid;
+  gap: 0.35rem;
+  list-style: none;
+  margin: 0;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.accessListItem {
+  align-items: center;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: space-between;
+  padding: 0.35rem 0.6rem;
+}
+
+.accessListEntry {
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+  word-break: break-all;
+}
+
+.accessEntryInfo {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.accessEntryName {
+  color: var(--accent-text);
+  font-weight: 700;
+  text-decoration: none;
+  word-break: break-word;
+}
+
+a.accessEntryName:hover {
+  text-decoration: underline;
+}
+
+.accessEntryMeta {
+  align-items: center;
+  color: var(--text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  gap: 0.4rem;
+}
+
+.accessEntryBadge {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.02rem 0.35rem;
+}
+
+.accessEntryHandle {
+  word-break: break-all;
+}
+
+.accessEntryUnresolved {
+  color: var(--owner);
+  font-weight: 700;
+}
+
+.accessRemoveButton {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  font-size: 1rem;
+  height: 24px;
+  line-height: 1;
+  padding: 0;
+  width: 24px;
+}
+
+.accessRemoveButton:hover {
+  border-color: var(--led-on);
+  color: var(--led-on);
+}
+
+.accessActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+.voicevoxCredit,
+.userPopupCv {
+  color: var(--accent-text);
+  font-size: 0.9rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.accountInfo {
+  display: grid;
+  gap: 0.35rem 1rem;
+  grid-template-columns: max-content minmax(0, 1fr);
+  margin: 0;
+}
+
+.accountInfo dt {
+  color: var(--text-muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.accountInfo dd {
+  margin: 0;
+  word-break: break-word;
+}
+
+.stackForm {
+  display: grid;
+  gap: 0.9rem;
+}
+
+/* slug入力欄＋ランダム再生成ボタンの行。 */
+.slugField {
+  align-items: stretch;
+  display: flex;
+  gap: 0.4rem;
+}
+
+.slugField input {
+  flex: 1;
+  min-width: 0;
+}
+
+.slugRandomButton {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  color: var(--text);
+  flex: none;
+  font-size: 1.1rem;
+  padding: 0 0.7rem;
+}
+
+.slugRandomButton:hover {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+}
+
+.loginMethod {
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1.2rem;
+  padding-bottom: 1.2rem;
+}
+
+.loginSelect {
+  display: grid;
+  gap: 1rem;
+}
+
+.loginSelectButtons {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.loginBackButton {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 0.95rem;
+  justify-self: start;
+  padding: 0;
+  width: auto;
+}
+
+.loginBackButton:hover {
+  color: var(--text);
+}
+
+.stackForm h2 {
+  font-size: 1.05rem;
+  margin-bottom: 0;
+}
+
+.stackForm label {
+  display: grid;
+  gap: 0.35rem;
+  font-weight: 700;
+}
+
+input,
+textarea,
+select {
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 0.65rem 0.75rem;
+  width: 100%;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-dim);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+textarea {
+  resize: vertical;
+}
+
+.formError {
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  border-radius: 6px;
+  color: var(--danger-text);
+  padding: 0.7rem 0.85rem;
+}
+
+.formNotice {
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: 6px;
+  color: var(--accent-text);
+  padding: 0.7rem 0.85rem;
+}
+
+.formWarning {
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  border-radius: 6px;
+  color: var(--warn-text);
+  font-weight: 700;
+  padding: 0.7rem 0.85rem;
+}
+
+.passwordGroup {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 0.85rem;
+  padding: 0.9rem;
+}
+
+.adminPage {
+  display: grid;
+  gap: 1.2rem;
+}
+
+.statsGrid {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.statBox {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 0.25rem;
+  padding: 1rem;
+}
+
+.statBox span {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.statBox strong {
+  font-size: 1.7rem;
+}
+
+.adminSection {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.adminSection h2 {
+  margin-bottom: 0;
+}
+
+/* 管理ページのセクション切り替えタブ。 */
+.adminTabs {
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.adminTabLink {
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.92rem;
+  font-weight: 600;
+  margin-bottom: -1px;
+  padding: 0.5rem 0.9rem;
+}
+.adminTabLink:hover {
+  color: var(--text);
+}
+.adminTabLink.active {
+  border-bottom-color: var(--accent);
+  color: var(--text);
+}
+
+/* セクション見出し＋フィルタ入力の行。 */
+.adminSectionHeader {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+.adminFilterInput {
+  flex: 1;
+  max-width: 360px;
+  min-width: 180px;
+}
+
+/* ユーザー一覧のコンパクトなユーザー表示（アバター＋名前＋ハンドル、編集不可）。 */
+.adminUserCell {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+}
+.adminUserAvatar {
+  flex: none;
+  height: 2rem;
+  width: 2rem;
+}
+.adminUserAvatar .avatar {
+  height: 2rem;
+  width: 2rem;
+}
+.adminUserMeta {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  min-width: 0;
+}
+.adminUserMeta .muted {
+  font-size: 0.8rem;
+}
+
+.inlineForm {
+  align-items: end;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+}
+
+.dictionaryInlineForm {
+  grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) auto auto auto;
+}
+
+.importButtonLabel {
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: center;
+  margin: 0;
+}
+
+.importButtonLabel input {
+  display: none;
+}
+
+.tableWrap {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+table {
+  border-collapse: collapse;
+  min-width: 860px;
+  width: 100%;
+}
+
+th,
+td {
+  border-bottom: 1px solid var(--border-soft);
+  padding: 0.65rem;
+  text-align: left;
+  vertical-align: middle;
+}
+
+th {
+  background: var(--surface-raised);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+td input,
+td select {
+  min-width: 150px;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.userAgentCell {
+  color: var(--text-muted);
+  font-size: 0.86rem;
+  max-width: 280px;
+  overflow-wrap: anywhere;
+}
+
+.actionCell {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  justify-content: flex-end;
+}
+
+.dangerButton {
+  background: var(--solid-danger);
+}
+
+.secondaryLink {
+  background: var(--steel);
+}
+
+.roomAdminList {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.roomAdminItem {
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 0.9rem;
+}
+
+.roomAdminItem span,
+.roomAdminItem p {
+  color: var(--text-muted);
+}
+
+.roomAdminItem p {
+  margin: 0.25rem 0 0;
+}
+
+.chatPage {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-height: 0;
+}
+
+/* チャンネルページはビューポート高に収め、ヘッダー(アクティブ表示含む)を画面上部、
+   入力欄を画面下部に固定し、メッセージ一覧だけをスクロールさせる。 */
+html:has(.chatPage),
+body:has(.chatPage) {
+  height: var(--visual-viewport-height, 100svh);
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.appShell:has(.chatPage) {
+  height: var(--visual-viewport-height, 100svh);
+  max-height: var(--visual-viewport-height, 100svh);
+  min-height: var(--visual-viewport-height, 100svh);
+  overflow: hidden;
+}
+
+.appShell:has(.channelInfoDrawerHandle) {
+  padding-top: var(--channel-info-handle-height);
+}
+
+.appShell:has(.chatPage) .topBar {
+  flex-shrink: 0;
+}
+
+.appShell:has(.chatPage) main {
+  display: flex;
+  flex-direction: column;
+  max-width: none;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+.appShell:has(.chatPage) .chatPage {
+  flex: 1;
+  border-left: 0;
+  border-radius: 0;
+  border-right: 0;
+  border-top: 0;
+}
+
+.channelInfoDrawerHandle {
+  background: var(--surface-raised);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  height: var(--channel-info-handle-height);
+  justify-content: center;
+  padding: 0.35rem clamp(0.8rem, 3vw, 2rem);
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 35;
+}
+
+.channelInfoDrawerTrigger {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--text-muted);
+  display: inline-flex;
+  font-size: 0.82rem;
+  gap: 0.45rem;
+  min-height: 1.9rem;
+  padding: 0.2rem 0.7rem;
+}
+
+.channelInfoDrawerGrip {
+  background: var(--border-strong);
+  border-radius: 999px;
+  display: inline-block;
+  height: 4px;
+  width: 34px;
+}
+
+.channelInfoDrawerOverlay {
+  background: var(--overlay);
+  bottom: 0;
+  left: 0;
+  position: fixed;
+  right: 0;
+  top: var(--channel-info-handle-height);
+  z-index: 30;
+}
+
+.channelInfoDrawerContent {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  border-radius: 0 0 12px 12px;
+  box-shadow: var(--shadow);
+  left: 0;
+  max-height: calc(var(--visual-viewport-height, 100svh) - var(--channel-info-handle-height));
+  overflow: auto;
+  padding: 0.7rem clamp(0.9rem, 3vw, 2rem) 1rem;
+  position: fixed;
+  right: 0;
+  top: var(--channel-info-handle-height);
+  z-index: 31;
+}
+
+.channelInfoDrawerContent:focus {
+  outline: none;
+}
+
+.channelInfoDrawerDragHandle {
+  margin-bottom: 0.9rem;
+}
+
+.channelInfoDrawerInner {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0 auto;
+  max-width: 1180px;
+}
+
+.channelInfoDrawerTitle {
+  font-size: 1.15rem;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.channelInfoDrawerDescription {
+  color: var(--text-muted);
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.channelInfoDrawerDescription.muted {
+  color: var(--text-dim);
+}
+
+.channelInfoDrawerActions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.channelInfoDrawerActions .ttsControls {
+  justify-content: flex-start;
+}
+
+.channelInfoDrawerActions .buttonLink {
+  border-radius: 6px;
+  font-size: 0.82rem;
+  padding: 0.42rem 0.65rem;
+}
+
+/* チャンネルヘッダーは画面占有を抑えるためコンパクトにする。 */
+.channelRoomHeader {
+  align-items: start;
+  background: var(--surface-raised);
+  border-bottom: 1px solid var(--border);
+  display: grid;
+  flex-shrink: 0;
+  gap: 0.6rem;
+  /* 操作ボタン群はチャンネル詳細の下に置くため、ヘッダーは単一カラムにする。 */
+  grid-template-columns: minmax(0, 1fr);
+  padding: 0.75rem clamp(0.8rem, 3vw, 2rem);
+  position: sticky;
+  top: 0;
+  width: 100%;
+  z-index: 2;
+}
+
+.compactChannelRoomHeader {
+  gap: 0.4rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.channelRoomHeader .roomHeaderMain {
+  min-width: 0;
+}
+
+/* チャンネル名の左に置く「‹」戻るボタン（チャンネル一覧へ）。 */
+.channelTitleRow {
+  align-items: center;
+  display: flex;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.channelTitleRow h1 {
+  margin-bottom: 0;
+}
+
+.channelBackButton {
+  align-items: center;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  color: var(--text);
+  display: inline-flex;
+  flex: none;
+  font-size: 1.4rem;
+  height: 2rem;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+  text-decoration: none;
+  width: 2rem;
+}
+
+.channelBackButton:hover {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+.channelRoomHeader h1 {
+  font-size: 1.25rem;
+  margin-bottom: 0.15rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.channelRoomHeader p {
+  font-size: 0.82rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* モバイル: チャンネル名はタップで詳細ダイアログを開くボタン。 */
+.channelTitleButton {
+  background: none;
+  border: 0;
+  color: var(--text);
+  cursor: pointer;
+  display: block;
+  font-size: 1.15rem;
+  font-weight: 800;
+  margin-bottom: 0.15rem;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 0;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* モバイル: オーナー/アクティブ表示は折り返さず1行（あふれた後半は隠す）。 */
+.compactChannelRoomHeader .channelPresence {
+  flex-wrap: nowrap;
+  margin-top: 0.2rem;
+  overflow: hidden;
+}
+
+.compactChannelRoomHeader .presenceAvatars {
+  flex-wrap: nowrap;
+}
+
+/* モバイル: 営業中・読み上げ・チャンネル設定を1列に収める（折り返さない）。 */
+.compactHeaderActions {
+  flex-wrap: nowrap;
+  gap: 0.4rem;
+  justify-content: flex-start;
+  margin-top: 0.55rem;
+}
+
+.compactHeaderActions .ttsControls {
+  flex-shrink: 0;
+}
+
+.compactHeaderActions .ttsToggle {
+  font-size: 0.74rem;
+  gap: 0.3rem;
+  padding: 0.32rem 0.5rem;
+  white-space: nowrap;
+}
+
+.compactHeaderActions .ttsLed {
+  height: 11px;
+  width: 11px;
+}
+
+.compactHeaderActions .buttonLink {
+  font-size: 0.74rem;
+  padding: 0.34rem 0.5rem;
+  white-space: nowrap;
+}
+
+/* モバイルのチャンネル詳細ダイアログ。 */
+.channelInfoDialogOverlay {
+  align-items: center;
+  background: rgb(0 0 0 / 55%);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 1.5rem;
+  position: fixed;
+  z-index: 45;
+}
+
+.channelInfoDialog {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  /* 縦に長い内容（テーブル等）が枠からはみ出して読めなくならないよう、
+     ダイアログ内でスクロールできるようにする。 */
+  max-height: calc(100vh - 3rem);
+  max-width: 420px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1.25rem;
+  position: relative;
+  width: 100%;
+}
+
+.channelInfoDialogClose {
+  background: none;
+  border: 0;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1.5rem;
+  line-height: 1;
+  position: absolute;
+  right: 0.6rem;
+  top: 0.5rem;
+}
+
+.channelInfoDialogTitle {
+  font-size: 1.2rem;
+  margin: 0 1.5rem 0.6rem 0;
+}
+
+.channelInfoDialogDesc {
+  color: var(--text-muted);
+  margin: 0 0 1rem;
+  white-space: pre-wrap;
+}
+
+/* 詳細ダイアログのパーマリンク。 */
+.channelInfoDialogPermalink {
+  margin: 1rem 0 0;
+}
+.channelInfoDialogPermalink a {
+  color: var(--accent-text);
+  font-size: 0.9rem;
+}
+
+/* PCヘッダー: タイトルをクリックで詳細ダイアログを開く（見出しの見た目のまま）。 */
+.channelTitleTextButton {
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  text-align: left;
+}
+.channelTitleTextButton:hover {
+  text-decoration: underline;
+}
+
+.channelInfoDialogOwner {
+  align-items: center;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 0.7rem;
+  padding-top: 1rem;
+}
+
+.channelInfoDialogOwnerAvatar {
+  background: none;
+  border: 2px solid var(--owner);
+  border-radius: 50%;
+  cursor: pointer;
+  display: inline-flex;
+  flex-shrink: 0;
+  padding: 1px;
+}
+
+.channelInfoDialogOwnerAvatar .avatar {
+  height: 44px;
+  width: 44px;
+}
+
+.channelInfoDialogOwnerMeta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.channelInfoDialogOwnerLabel {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+/* ラベルと値を縦積みにして枠内に必ず収める（横スクロールを出さない）。 */
+.channelInfoList {
+  border-top: 1px solid var(--border);
+  font-size: 0.9rem;
+  margin: 1rem 0 0;
+}
+
+.channelInfoRow {
+  align-items: baseline;
+  border-bottom: 1px solid var(--border);
+  column-gap: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  padding: 0.6rem 0;
+}
+
+.channelInfoRow dt {
+  color: var(--text-muted);
+  font-weight: 700;
+  min-width: 0;
+}
+
+.channelInfoRow dd {
+  color: var(--text);
+  font-weight: 700;
+  margin: 0;
+  text-align: right;
+}
+
+.statusPill {
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 800;
+  padding: 0.3rem 0.65rem;
+  white-space: nowrap;
+}
+
+.topStatusPill {
+  flex-shrink: 0;
+}
+
+.statusPill.connecting {
+  background: var(--solid-warn);
+}
+
+.statusPill.reconnecting {
+  background: var(--solid-warn);
+}
+
+.statusPill.open {
+  background: var(--solid-ok);
+}
+
+.statusPill.closed,
+.statusPill.error {
+  background: var(--solid-danger);
+}
+
+.messageList {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: block;
+  gap: 0.2rem;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0.75rem;
+}
+
+.messageListSlot {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+.messageListSlot .messageList {
+  width: 100%;
+}
+
+.scrollToBottomButton {
+  align-items: center;
+  background: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 80%, #fff);
+  border-radius: 50%;
+  bottom: 1rem;
+  box-shadow: var(--shadow);
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  height: 2.7rem;
+  justify-content: center;
+  padding: 0;
+  position: absolute;
+  right: 1rem;
+  width: 2.7rem;
+  z-index: 8;
+}
+
+.scrollToBottomButton:hover {
+  background: var(--accent-hover);
+}
+
+.scrollToBottomButton:focus-visible {
+  outline: 3px solid rgb(255 255 255 / 70%);
+  outline-offset: 2px;
+}
+
+.scrollToBottomIcon {
+  border-left: 0.45rem solid transparent;
+  border-right: 0.45rem solid transparent;
+  border-top: 0.6rem solid currentColor;
+  height: 0;
+  transform: translateY(0.08rem);
+  width: 0;
+}
+
+.messageRow {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 42px minmax(0, 1fr);
+  padding: 0.6rem;
+}
+
+/* 自分の発言は左右反転。アバターを右端、本文を左の列に置き、
+   時刻・メニュー・テキストを右寄せにする。 */
+.messageRow.own {
+  grid-template-columns: minmax(0, 1fr) 42px;
+}
+
+.messageRow.own .avatarButton {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.messageRow.own .messageBody {
+  grid-column: 1;
+  grid-row: 1;
+  /* 子（メタ行・本文ボックス）を右側に寄せる。ボックスは inline-block なので
+     text-align で右寄せできる。 */
+  text-align: right;
+}
+
+/* メタ行（時刻＋⋯ボタン）を右寄せし、アバター側に時刻が来るよう並びを反転。 */
+.messageRow.own .messageMeta {
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+}
+
+/* 自分のコメントは最大600pxの幅に収め、枠自体は右寄せ・中のテキストは左寄せ。
+   背景やボーダーは付けず、レイアウトのみ反転する。 */
+.messageRow.own .messageContent {
+  display: inline-block;
+  max-width: 600px;
+  text-align: left;
+}
+
+.channelPresence {
+  align-items: center;
+  display: flex;
+  /* 画面が狭くても折り返さず1行に収める（あふれたアバターは隠す）。 */
+  flex-wrap: nowrap;
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.activeCount {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+/* オーナー | アクティブ数/のべ人数 | アバター の縦線区切り。 */
+.presenceDivider {
+  align-self: center;
+  background: var(--border-strong);
+  flex-shrink: 0;
+  height: 22px;
+  width: 1px;
+}
+
+.presenceAvatars {
+  display: flex;
+  /* 折り返さず、あふれたアバターはクリップする（後方は見えなくてよい）。 */
+  flex: 1 1 auto;
+  flex-wrap: nowrap;
+  gap: 0.35rem;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.presenceMember {
+  align-items: center;
+  background: none;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  /* アバターは縮めずに一定サイズを保ち、あふれた分はクリップする。 */
+  flex-shrink: 0;
+  height: 34px;
+  justify-content: center;
+  padding: 1px;
+  width: 34px;
+}
+
+.presenceMember .avatar {
+  height: 28px;
+  width: 28px;
+}
+
+.presenceMember.active {
+  border-color: var(--accent-bright);
+}
+
+.presenceMember.inactive .avatar {
+  filter: grayscale(1);
+  opacity: 0.42;
+}
+
+/* オーナーは琥珀色のリングで識別する（アクティブ/非アクティブに関わらず）。 */
+.presenceMember.owner {
+  border-color: var(--owner);
+}
+
+.avatar {
+  background: var(--surface-raised);
+  border-radius: 50%;
+  height: 42px;
+  object-fit: cover;
+  width: 42px;
+}
+
+.avatarFallback {
+  align-items: center;
+  color: var(--text);
+  display: flex;
+  font-weight: 800;
+  justify-content: center;
+}
+
+.messageMeta {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.messageMeta span,
+.messageMeta time {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.messageDeleteButton {
+  background: transparent;
+  color: var(--danger-text);
+  font-size: 0.86rem;
+  padding: 0;
+}
+
+.messageDeleteButton:disabled {
+  color: var(--text-dim);
+}
+
+/* 投稿時刻の隣に置く、メニューを開く小さなボタン（読み上げ・削除）。
+   時刻自体ではなく、見た目で操作できると分かるアイコンボタンにする。 */
+.messageMenuButton {
+  align-items: center;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.95rem;
+  height: 18px;
+  justify-content: center;
+  line-height: 1;
+  min-width: 24px;
+  padding: 0 0.25rem;
+}
+
+.messageMenuButton:hover {
+  background: var(--surface-sunken);
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+/* 設定モーダル（画面遷移せず開く）。 */
+.settingsModalOverlay {
+  align-items: center;
+  background: var(--overlay);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 1rem;
+  position: fixed;
+  z-index: 60;
+}
+
+/* PWAインストール手順のお知らせダイアログ。 */
+.pwaPromptOverlay {
+  align-items: center;
+  background: var(--overlay);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 1rem;
+  position: fixed;
+  /* セーフエリア下端を避ける（iOS PWA以外でも下部が詰まらないように）。 */
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  z-index: 80;
+}
+
+.pwaPrompt {
+  background: var(--surface);
+  border: 2px solid var(--border-strong);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-height: calc(var(--visual-viewport-height, 100vh) - 2rem);
+  max-width: 460px;
+  overflow: auto;
+  padding: 1.2rem 1.3rem 1.1rem;
+  width: 100%;
+}
+
+.pwaPromptHeader {
+  align-items: flex-start;
+  display: flex;
+  gap: 0.6rem;
+  justify-content: space-between;
+}
+
+.pwaPromptTitle {
+  color: var(--accent-text);
+  font-size: 1.15rem;
+  margin: 0;
+}
+
+.pwaPromptClose {
+  background: transparent;
+  border: 0;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1.4rem;
+  line-height: 1;
+  padding: 0.1rem 0.3rem;
+}
+
+.pwaPromptClose:hover {
+  background: transparent;
+  color: var(--text);
+}
+
+.pwaPromptIntro {
+  color: var(--text);
+  margin: 0;
+}
+
+.pwaPromptSteps {
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+  padding-left: 1.3rem;
+}
+
+.pwaPromptSteps li {
+  line-height: 1.5;
+}
+
+.pwaPromptNote {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.pwaPromptError {
+  color: var(--danger-text);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.pwaPromptFooter {
+  align-items: center;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  margin-top: 0.3rem;
+  padding-top: 0.9rem;
+}
+
+/* flex にすると項目化で幅いっぱいに広がりチェックボックスと文字が離れるため、
+   通常のインライン配置＋中央寄せにする（1行固定）。 */
+.pwaPromptDontShow {
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.9rem;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.pwaPromptDontShow input {
+  /* グローバルの input{width:100%} を打ち消す（チェックボックスが全幅に伸びるのを防ぐ）。 */
+  width: auto;
+  margin: 0 0.4rem 0 0;
+  padding: 0;
+  vertical-align: middle;
+}
+
+.pwaPromptCloseButton {
+  background: var(--accent);
+  border-radius: 8px;
+  padding: 0.55rem 1.1rem;
+}
+
+.settingsModal {
+  background: var(--surface);
+  border: 2px solid var(--border-strong);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  max-height: min(85vh, 720px);
+  max-width: 560px;
+  width: 100%;
+}
+
+/* チャンネル設定モーダルは左ナビ＋内容の2カラムのため広めにする。 */
+.channelSettingsModal {
+  max-width: 760px;
+}
+
+.settingsModalHeader {
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  padding: 0.9rem 1.1rem;
+}
+
+.settingsModalHeader h2 {
+  margin: 0;
+}
+
+.settingsModalClose {
+  background: none;
+  border: 0;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1.6rem;
+  line-height: 1;
+  padding: 0 0.2rem;
+}
+
+.settingsModalClose:hover {
+  color: var(--text);
+}
+
+/* 本文は縦に長くなるためスクロールさせる。 */
+.settingsModalBody {
+  overflow-y: auto;
+  padding: 0.4rem 1.1rem 1.1rem;
+}
+
+/* モーダル内では最初のセクションの上罫線・余白を詰める。 */
+.settingsModalBody > .settingsSection:first-of-type {
+  border-top: 0;
+  margin-top: 0.6rem;
+  padding-top: 0;
+}
+
+/* 投稿メニュー（時刻タップで開く）。 */
+.messageMenuOverlay {
+  align-items: center;
+  background: var(--overlay);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 1rem;
+  position: fixed;
+  z-index: 42;
+}
+
+.messageMenu {
+  background: var(--surface);
+  border: 2px solid var(--border-strong);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 0.5rem;
+  max-width: 320px;
+  padding: 0.85rem;
+  width: min(100%, 320px);
+}
+
+.messageMenuItem {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 0.7rem 0.9rem;
+  text-align: center;
+}
+
+.messageMenuItem:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.messageMenuItem:disabled {
+  color: var(--text-dim);
+  cursor: default;
+  opacity: 0.6;
+}
+
+.messageMenuItem.danger {
+  color: var(--danger-text);
+}
+
+.messageBody p {
+  margin: 0.2rem 0 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+/* リンク化されたURLはアクセント色＋下線でリンクと分かるようにする。 */
+.messageBody a {
+  color: var(--accent-text);
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+}
+
+/* リンクプレビューカードは本文リンクの下線・色指定を打ち消す。 */
+.messageBody a.linkPreview {
+  color: inherit;
+  text-decoration: none;
+}
+
+.notice {
+  background: var(--accent-bg);
+  border-radius: 6px;
+  color: var(--accent-text);
+  padding: 0.55rem 0.75rem;
+}
+
+.errorNotice {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+
+.emptyState {
+  color: var(--text-muted);
+  margin: 0.75rem;
+}
+
+.chatInput {
+  align-items: stretch;
+  display: flex;
+  gap: 0.35rem;
+  border-radius: 8px;
+}
+
+/* 画像ドラッグ中はメッセージ枠をハイライトしてドロップ可能と示す。 */
+.chatInput.dragOver {
+  outline: 2px dashed var(--accent);
+  outline-offset: 3px;
+}
+
+.chatInput.dragOver textarea {
+  border-color: var(--accent);
+}
+
+.chatInput textarea {
+  flex: 1;
+  /* flex-wrap時に入力欄が縮み、送信ボタン列が下に折り返さないようにする。 */
+  min-width: 0;
+}
+
+/* テキストエリアの右に、送信ボタン→チェックボックス→文字数を縦に並べる。 */
+.inputSide {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+  gap: 0.4rem;
+}
+
+/* 送信ボタンはテキストエリアの高さに合わせて縦長にし、枠との隙間を詰める。 */
+.inputSide button {
+  align-self: stretch;
+  flex: 1;
+  flex-shrink: 0;
+  min-height: 2.6rem;
+  padding-left: 1.4rem;
+  padding-right: 1.4rem;
+}
+
+.charCount {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.enterToSendToggle {
+  align-items: center;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  gap: 0.35rem;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.enterToSendToggle input {
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+  width: auto;
+}
+
+.limitWarning {
+  color: var(--danger-text) !important;
+}
+
+/* 管理画面サーバ設定のホワイトリスト機能トグル。 */
+.whitelistToggle {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  font-size: 0.95rem;
+  gap: 0.5rem;
+  user-select: none;
+}
+
+.whitelistToggle input {
+  cursor: pointer;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+/* 画像添付ボタンはセカンダリ操作として控えめに。 */
+.imageAttachButton {
+  align-self: stretch;
+  background: var(--steel);
+  flex-shrink: 0;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* 添付画像のサムネイル。入力欄の左側に置き、画像自体は左寄せで表示する。 */
+.imageAttachPreview {
+  align-items: flex-start;
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: flex-start;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.imageAttachPreviewButton {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  display: inline-flex;
+  padding: 0;
+}
+
+.imageAttachPreviewButton:hover {
+  background: transparent;
+}
+
+.imageAttachThumb {
+  border-radius: 6px;
+  height: 64px;
+  object-fit: cover;
+  width: 64px;
+}
+
+.imageAttachRemove {
+  align-items: center;
+  background: var(--surface-raised);
+  border-radius: 999px;
+  color: var(--text-muted);
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 1rem;
+  height: 1.5rem;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+  width: 1.5rem;
+}
+
+.imageUploadingNotice {
+  color: var(--accent-text);
+  font-size: 0.85rem;
+  margin: 0.2rem 0;
+}
+
+/* 投稿に添付された画像。本文カラム内で左寄せし、枠線なしで表示する。 */
+.messageImageButton {
+  align-self: flex-start;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: flex-start;
+  margin-bottom: 0.35rem;
+  padding: 0;
+  width: fit-content;
+}
+
+.messageImageButton:hover {
+  background: transparent;
+}
+
+.messageImage {
+  border-radius: 8px;
+  display: block;
+  height: auto;
+  max-height: 360px;
+  max-width: 100%;
+  object-fit: contain;
+  width: auto;
+}
+
+/* リンク（OGP）プレビューカード。 */
+.linkPreview {
+  align-items: stretch;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: inherit;
+  display: flex;
+  margin-top: 0.4rem;
+  max-width: 460px;
+  overflow: hidden;
+  text-decoration: none;
+}
+
+.linkPreview:hover {
+  border-color: var(--accent);
+}
+
+.linkPreviewImage {
+  flex-shrink: 0;
+  width: 96px;
+  background: var(--surface-raised);
+}
+
+.linkPreviewImage img {
+  display: block;
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+
+.linkPreviewBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  padding: 0.6rem 0.75rem;
+}
+
+.linkPreviewSite {
+  color: var(--text-muted) !important;
+  font-size: 0.72rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.linkPreviewTitle {
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 700;
+  /* 2行で省略。 */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+.linkPreviewDesc {
+  color: var(--text-muted) !important;
+  font-size: 0.78rem;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+/* YouTube埋め込みプレイヤー（16:9 レスポンシブ）。 */
+.youtubeEmbed {
+  margin-top: 0.4rem;
+  max-width: 460px;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #000;
+  border: 1px solid var(--border);
+}
+
+.youtubeEmbed iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.imageViewerOverlay {
+  align-items: center;
+  background: rgb(15 23 32 / 84%);
+  border: 0;
+  bottom: 0;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  left: 0;
+  padding: 1rem;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 60;
+}
+
+.imageViewerOverlay:hover {
+  background: rgb(15 23 32 / 84%);
+}
+
+.imageViewerImage {
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  display: block;
+  height: auto;
+  max-height: calc(var(--visual-viewport-height, 100vh) - 2rem);
+  max-width: calc(100vw - 2rem);
+  object-fit: contain;
+  width: auto;
+}
+
+.handheldChatPage .messageList {
+  padding-bottom: 0.75rem;
+}
+
+.mobileComposeButton {
+  align-items: center;
+  background: var(--accent);
+  border-radius: 6px;
+  box-shadow: none;
+  align-self: flex-end;
+  display: flex;
+  font-size: 0.95rem;
+  height: auto;
+  justify-content: center;
+  line-height: 1;
+  margin-left: auto;
+  padding: 0.75rem 1.1rem;
+  width: auto;
+}
+
+/* iOSなどでホーム画面から起動したPWA（standalone表示）専用のセーフエリア対応。
+   ステータスバー（時計/バッテリー）が black-translucent でコンテンツに重なるため、
+   上部はセーフエリア分だけ下げ、下部は画面の丸み・ホームインジケータを避けて持ち上げる。
+   Safari（ブラウザ表示 display-mode: browser）は対象外なので従来のバランスのまま。 */
+@media (display-mode: standalone) {
+  /* サービス名（チャンネル一覧へ戻る唯一のリンク）が時計に隠れないよう下げる。
+     チャンネルページのドロワーハンドルがある場合は appShell 側で確保するため二重化を避ける。 */
+  .appShell:not(:has(.channelInfoDrawerHandle)) .topBar {
+    padding-top: calc(0.9rem + env(safe-area-inset-top));
+  }
+
+  /* チャンネル詳細ドロワーのハンドル（最上部固定）も時計を避ける。
+     appShell の確保分も同じだけ増やしてレイアウトのずれを防ぐ。 */
+  .channelInfoDrawerHandle {
+    height: calc(var(--channel-info-handle-height) + env(safe-area-inset-top));
+    padding-top: calc(0.35rem + env(safe-area-inset-top));
+  }
+
+  .appShell:has(.channelInfoDrawerHandle) {
+    padding-top: calc(var(--channel-info-handle-height) + env(safe-area-inset-top));
+  }
+
+  /* 「書き込み」ボタンの縦位置は従来のまま。画面の丸みを避けてほんの少し左へ寄せる。 */
+  .mobileComposeButton {
+    margin-right: 1rem;
+  }
+}
+
+.mobileComposerOverlay {
+  align-items: center;
+  background: var(--overlay);
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  left: 0;
+  padding: 1rem 1rem calc(1rem + var(--mobile-keyboard-inset, 0px));
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 40;
+}
+
+.mobileComposerDialog {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  max-height: 100%;
+  overflow: auto;
+  padding: 0.85rem;
+  width: min(100%, 440px);
+}
+
+.mobileComposerDialog .chatInput {
+  flex-direction: column;
+  gap: 0.55rem;
+  padding-top: 0.35rem;
+}
+
+.mobileComposerDialog .chatInput textarea {
+  flex: 0 0 auto;
+  height: 5.5rem;
+  min-height: 0;
+}
+
+.mobileComposerDialog .imageAttachPreview {
+  width: 100%;
+}
+
+.mobileComposerDialog .inputSide {
+  align-items: center;
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.mobileComposerDialog .inputSide button {
+  flex: 1 1 7rem;
+}
+
+.mobileComposerDialog .charCount {
+  order: 1;
+}
+
+.mobileComposerDialog .sendButton {
+  order: 2;
+}
+
+.mobileComposerDialog .enterToSendToggle {
+  justify-content: flex-end;
+  order: 3;
+  width: 100%;
+}
+
+/* メッセージのアバターはクリックでプロフィールポップアップを開くボタン。 */
+.avatarButton {
+  align-self: start;
+  background: none;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  display: inline-flex;
+  height: 42px;
+  justify-content: center;
+  padding: 0;
+  width: 42px;
+}
+
+.avatarButton:hover {
+  background: transparent;
+}
+
+.userPopupOverlay {
+  align-items: center;
+  background: var(--overlay);
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  left: 0;
+  padding: 1rem;
+  position: fixed;
+  right: 0;
+  top: var(--user-popup-safe-top, 0);
+  z-index: 50;
+}
+
+.userPopupCard {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.5rem;
+  position: relative;
+  text-align: center;
+  width: min(320px, 100%);
+}
+
+.userPopupClose {
+  background: none;
+  color: var(--text-muted);
+  font-size: 1.4rem;
+  line-height: 1;
+  padding: 0.2rem 0.5rem;
+  position: absolute;
+  right: 0.5rem;
+  top: 0.5rem;
+}
+
+.userPopupAvatar .avatar {
+  height: 72px;
+  width: 72px;
+}
+
+.userPopupName {
+  font-size: 1.1rem;
+}
+
+.userPopupHandle {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  word-break: break-all;
+}
+
+.userPopupCard .buttonLink {
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 820px) {
+  .sectionHeader,
+  .roomHeader {
+    display: grid;
+  }
+
+  .sessionBox {
+    align-items: flex-start;
+  }
+
+  .inlineForm {
+    grid-template-columns: 1fr;
+  }
+
+  .roomAdminItem {
+    align-items: flex-start;
+    display: grid;
+  }
+
+  /* スマホではチャンネルヘッダーを詰めてチャット領域を広く取る。 */
+  .appShell:has(.chatPage):not(:has(.deckRoot)) main {
+    padding: 0;
+  }
+
+  .appShell:not(:has(.deckRoot)) .chatPage {
+    padding: 0.8rem;
+  }
+
+  .appShell:not(:has(.deckRoot)) .channelRoomHeader {
+    gap: 0.5rem;
+    grid-template-columns: minmax(0, 1fr);
+    padding: 0.65rem 0.8rem;
+  }
+
+  .appShell:not(:has(.deckRoot)) .channelRoomHeader .roomHeaderActions {
+    width: 100%;
+  }
+
+  .appShell:not(:has(.deckRoot)) .channelRoomHeader h1 {
+    font-size: 1.1rem;
+  }
+}
+
+/* =========================================================================
+   Deck型レイアウト（PC/iPad横向き限定・複数カラム同時表示）
+   ========================================================================= */
+
+/* Deckがある間はビューポート高に収め、topBarを固定・deck内でスクロールさせる。 */
+.appShell:has(.deckRoot) {
+  height: var(--visual-viewport-height, 100svh);
+  max-height: var(--visual-viewport-height, 100svh);
+  min-height: var(--visual-viewport-height, 100svh);
+  overflow: hidden;
+}
+.appShell:has(.deckRoot) .topBar {
+  flex-shrink: 0;
+}
+.appShell:has(.deckRoot) main {
+  display: flex;
+  max-width: none;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+.deckRoot {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+.deck {
+  display: flex;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  width: 100%;
+}
+/* <1400px は先頭カラムのみ・横スクロールなし・中央寄せ。 */
+.deck.narrow {
+  justify-content: center;
+  overflow-x: hidden;
+}
+
+.deckModule {
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  height: 100%;
+  max-width: 600px;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+  width: min(600px, 100%);
+}
+.deckModule.active {
+  box-shadow: inset 0 2px 0 0 var(--accent);
+}
+
+/* カラム右端の幅調整ハンドル（ドラッグでリサイズ）。 */
+.deckModuleResizer {
+  bottom: 0;
+  cursor: col-resize;
+  position: absolute;
+  right: 0;
+  top: 0;
+  touch-action: none;
+  width: 7px;
+  z-index: 5;
+}
+.deckModuleResizer:hover,
+.deckModuleResizer:active {
+  background: var(--accent);
+  opacity: 0.5;
+}
+
+.deckModuleHeader {
+  align-items: center;
+  background: var(--surface-raised);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-shrink: 0;
+  gap: 0.5rem;
+  justify-content: space-between;
+  min-height: 2.1rem;
+  padding: 0.25rem 0.6rem;
+}
+.deckModuleLabel {
+  align-items: center;
+  color: var(--text-muted);
+  display: inline-flex;
+  font-size: 0.82rem;
+  font-weight: 600;
+  gap: 0.5rem;
+}
+.deckModuleClose {
+  background: transparent;
+  border: 0;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 0.1rem 0.4rem;
+}
+.deckModuleClose:hover {
+  color: var(--text);
+}
+
+/* カラム本体。一覧はスクロール、チャンネルは chatPage が内部スクロールを持つ。 */
+.deckModuleBody {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+}
+.deckModuleBody:has(.chatPage) {
+  overflow-y: hidden;
+}
+/* 埋め込んだ一覧・チャンネルの外枠は二重にしない。 */
+.deckModuleBody > .contentColumn {
+  border: 0;
+  border-radius: 0;
+  min-height: 100%;
+}
+.deckModuleBody > .chatPage {
+  border: 0;
+  border-radius: 0;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow-x: hidden;
+}
+.deckModuleBody > .chatPage .channelRoomHeader {
+  padding: 0.75rem 1.2rem;
+}
+.deckModuleBody > .chatPage .channelRoomHeader h1 {
+  font-size: 1.25rem;
+}
+.deckModuleBody > .chatPage .messageListSlot,
+.deckModuleBody > .chatPage .messageList,
+.deckModuleBody > .chatPage .chatInput {
+  min-width: 0;
+}
+.deckModuleBody > .chatPage .messageList {
+  overflow-x: hidden;
+}
+
+/* 末尾の細い空きカラム：追加・ロード・セーブを縦に並べる。 */
+.deckModuleEmpty {
+  align-items: center;
+  color: var(--text-muted);
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 1rem;
+  justify-content: center;
+  padding: 1rem;
+  width: 96px;
+}
+.deckEmptyButton {
+  align-items: center;
+  background: transparent;
+  border: 2px dashed var(--border-strong);
+  border-radius: 14px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  height: 62px;
+  justify-content: center;
+  width: 62px;
+}
+.deckEmptyButton:hover {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+}
+
+.deckEmptyButtonFlash {
+  animation: deckEmptyButtonFlash 0.5s linear 1;
+}
+
+@keyframes deckEmptyButtonFlash {
+  0%,
+  14%,
+  34%,
+  48%,
+  68%,
+  82% {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  15%,
+  33%,
+  49%,
+  67%,
+  83%,
+  100% {
+    background: transparent;
+    border-color: var(--border-strong);
+    color: var(--text-muted);
+  }
+}
+
+.deckEmptyPlus {
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+/* 準備中カラム。 */
+.deckSuspendedCard {
+  align-items: center;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.8rem;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  text-align: center;
+}
+.deckSuspendedTitle {
+  margin: 0;
+}
+
+/* =========================================================================
+   投稿の絵文字リアクション
+   ========================================================================= */
+.reactionBar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.35rem;
+}
+.messageRow.own .reactionBar {
+  justify-content: flex-end;
+}
+.reactionChip {
+  align-items: center;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.85rem;
+  gap: 0.25rem;
+  line-height: 1;
+  padding: 0.2rem 0.5rem;
+  user-select: none;
+}
+.reactionChip.reacted {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--accent-text);
+}
+.reactionCount {
+  font-variant-numeric: tabular-nums;
+  min-width: 0.8em;
+  text-align: center;
+}
+/* 「😃」追加ボタンはモノクロで控えめに。ホバーで色付き。 */
+.reactionAddWrap {
+  position: relative;
+}
+.reactionAddButton {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  filter: grayscale(1);
+  font-size: 0.85rem;
+  line-height: 1;
+  opacity: 0.75;
+  padding: 0.2rem 0.45rem;
+}
+.reactionAddButton:hover {
+  filter: none;
+  opacity: 1;
+}
+
+/* 絵文字パレット（ポップオーバー） */
+.emojiPalette {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  left: 0;
+  padding: 0.6rem;
+  position: absolute;
+  width: 260px;
+  z-index: 40;
+}
+.emojiPalette.up {
+  bottom: calc(100% + 0.3rem);
+}
+.emojiPalette.down {
+  top: calc(100% + 0.3rem);
+}
+.messageRow.own .emojiPalette {
+  left: auto;
+  right: 0;
+}
+.emojiPaletteLabel {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  margin: 0.3rem 0 0.25rem;
+}
+.emojiPaletteGrid {
+  display: grid;
+  gap: 0.15rem;
+  grid-template-columns: repeat(8, 1fr);
+}
+.emojiPaletteItem {
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1.15rem;
+  line-height: 1;
+  padding: 0.25rem 0;
+}
+.emojiPaletteItem:hover {
+  background: var(--surface-raised);
+}
+.emojiPaletteCustom {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+.emojiPaletteCustom input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 「誰がリアクションしたか」ポップアップ（長押しで表示・ハンドルのみ） */
+.reactionWhoOverlay {
+  align-items: center;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  position: fixed;
+  z-index: 60;
+}
+.reactionWhoPopup {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  max-height: 60vh;
+  max-width: 260px;
+  overflow-y: auto;
+  padding: 0.7rem 0.9rem;
+}
+.reactionWhoHeader {
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+  padding-bottom: 0.4rem;
+}
+.reactionWhoEmoji {
+  font-size: 1.3rem;
+}
+.reactionWhoList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.reactionWhoList li {
+  font-size: 0.85rem;
+}
+
+/* ===== サービス情報ページ（サービス名クリックで開く） ===== */
+.serviceInfoPage {
+  margin: 2rem auto;
+  max-width: 720px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+.serviceInfoName {
+  margin: 0;
+  font-size: 1.6rem;
+  text-align: center;
+  word-break: break-word;
+}
+.serviceInfoHeader {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  object-fit: cover;
+}
+.serviceInfoSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.serviceInfoSection h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--text);
+  border-bottom: 1px solid var(--border-soft);
+  padding-bottom: 0.3rem;
+}
+/* アプリケーション情報は長文になるためスクロール枠内で表示する。 */
+.serviceInfoScrollBox {
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 0.8rem 1rem;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.serviceInfoActions {
+  display: flex;
+  justify-content: center;
+  padding-top: 0.4rem;
+}
+.serviceInfoOkButton {
+  min-width: 160px;
+  padding: 0.6rem 1.5rem;
+  font-size: 1rem;
+}
+
+/* Markdown 整形本文（サーバ概要・アプリケーション情報） */
+.markdownBody {
+  color: var(--text);
+  font-size: 0.95rem;
+  line-height: 1.7;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+.markdownBody > :first-child {
+  margin-top: 0;
+}
+.markdownBody > :last-child {
+  margin-bottom: 0;
+}
+.markdownBody h1,
+.markdownBody h2,
+.markdownBody h3,
+.markdownBody h4 {
+  margin: 1.1em 0 0.5em;
+  line-height: 1.3;
+}
+.markdownBody h1 {
+  font-size: 1.4rem;
+}
+.markdownBody h2 {
+  font-size: 1.2rem;
+}
+.markdownBody h3 {
+  font-size: 1.05rem;
+}
+.markdownBody p {
+  margin: 0.6em 0;
+}
+.markdownBody ul,
+.markdownBody ol {
+  margin: 0.6em 0;
+  padding-left: 1.4em;
+}
+.markdownBody li {
+  margin: 0.2em 0;
+}
+.markdownBody a {
+  color: var(--accent-text);
+  text-decoration: underline;
+  word-break: break-all;
+}
+.markdownBody code {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-soft);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+  font-size: 0.88em;
+}
+.markdownBody pre {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  padding: 0.8em 1em;
+  overflow-x: auto;
+}
+.markdownBody pre code {
+  background: none;
+  border: none;
+  padding: 0;
+}
+.markdownBody blockquote {
+  margin: 0.6em 0;
+  padding: 0.2em 0 0.2em 1em;
+  border-left: 3px solid var(--border-strong);
+  color: var(--text-muted);
+}
+.markdownBody hr {
+  border: none;
+  border-top: 1px solid var(--border-soft);
+  margin: 1.2em 0;
+}
+.markdownBody table {
+  border-collapse: collapse;
+  margin: 0.6em 0;
+}
+.markdownBody th,
+.markdownBody td {
+  border: 1px solid var(--border-soft);
+  padding: 0.4em 0.7em;
+}
+.markdownBody img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ===== 管理: サーバ設定タブ ===== */
+.serverSettingGroup {
+  margin-top: 1.2rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--border-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.serverSettingGroup:first-of-type {
+  margin-top: 0.5rem;
+  padding-top: 0;
+  border-top: none;
+}
+.serverSettingGroup h3 {
+  margin: 0;
+  font-size: 1.02rem;
+}
+.serverHeaderPreview {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.serverOverviewInput {
+  width: 100%;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  padding: 0.7rem 0.8rem;
+  background: var(--surface-sunken);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.serverOverviewFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+/* スマホでも崩れないよう、狭い画面では余白を詰める */
+@media (max-width: 640px) {
+  .serviceInfoPage {
+    margin: 0.8rem auto;
+    padding: 1rem;
+    border-radius: 0;
+    gap: 1rem;
+  }
+  .serviceInfoName {
+    font-size: 1.35rem;
+  }
+  .serviceInfoScrollBox {
+    max-height: 50vh;
+  }
+  .serviceInfoOkButton {
+    width: 100%;
+  }
+}
+
+/* ===== 認証状態の読み込み中プレースホルダ ===== */
+.authLoading {
+  margin: 3rem auto;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+/* ===== 停止ユーザー向け「現在ご利用になれません」 ===== */
+.unavailablePage {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 2rem 1rem;
+}
+.unavailableCard {
+  width: 100%;
+  max-width: 460px;
+  margin: 2rem auto;
+  padding: 2rem 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+.unavailableCard h1 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+.unavailableCard p {
+  margin: 0;
+  line-height: 1.6;
+}
+.unavailableLogout {
+  align-self: center;
+  margin-top: 0.6rem;
+  min-width: 160px;
+  padding: 0.55rem 1.4rem;
+}
+
+@media (max-width: 640px) {
+  .unavailableCard {
+    margin: 1rem auto;
+    padding: 1.4rem 1.1rem;
+  }
+}

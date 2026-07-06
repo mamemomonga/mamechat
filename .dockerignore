@@ -1,0 +1,9 @@
+.git
+.env
+backend/.gocache
+backend/.gomodcache
+frontend/.npm-cache
+frontend/dist
+frontend/node_modules
+frontend/tsconfig.tsbuildinfo
+backups

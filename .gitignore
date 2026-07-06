@@ -1,0 +1,27 @@
+.DS_Store
+.env
+
+# make version が生成するcommitHash付きバージョン（コミットしない）
+/version.full
+
+backend/.gocache/
+backend/.gomodcache/
+
+frontend/.npm-cache/
+frontend/dist/
+frontend/node_modules/
+frontend/tsconfig.tsbuildinfo
+
+backups/
+
+# nginx アクセスログ（ホストへバインドマウント、logrotateで保全。コミットしない）
+logs/
+
+# design-sync (claude.ai/design) の生成物・機械状態
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+
+.agents/
+.claude/skills/deploy
+/deploy.sh
