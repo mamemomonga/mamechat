@@ -297,3 +297,8 @@ VOICEVOX ENGINEで生成した音声を公開・配布する場合は、各キ�
 mamechat本体は [MIT License](./LICENSE) で公開しています（製作者: mamemomonga）。
 
 VOICEVOX ENGINE（LGPL 等）およびffmpeg（LGPL / GPL）は、それぞれ独立したプロセス／コンテナとしてAPI・CLI経由で呼び出す構成のため、mamechat本体のソースコードのライセンス（MIT）には影響しません。これらのソフトウェア自体、および配布物（例: ffmpegを同梱するDockerイメージ）を再配布する場合は、各ソフトウェアのライセンス条件に従ってください。
+
+## クレジット
+
+- サーバアイコンのロゴデザイン: © Mitch Ikeuchi ([https://mitchikeuchi.com](https://mitchikeuchi.com))
+
