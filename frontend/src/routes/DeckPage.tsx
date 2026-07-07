@@ -314,22 +314,17 @@ export default function DeckPage({ routeSlug }: DeckPageProps) {
             }}
             onPointerDownCapture={() => setActiveId(module.id)}
           >
-            <div className="deckModuleHeader">
-              <span className="deckModuleLabel">
-                {module.view.type === "list" ? "チャンネル一覧" : ""}
-              </span>
-              {wide && realCount > 1 ? (
-                <button
-                  type="button"
-                  className="deckModuleClose"
-                  aria-label="カラムを閉じる"
-                  title="カラムを閉じる"
-                  onClick={() => closeModule(module.id)}
-                >
-                  ×
-                </button>
-              ) : null}
-            </div>
+            {wide && realCount > 1 ? (
+              <button
+                type="button"
+                className="deckModuleClose"
+                aria-label="カラムを閉じる"
+                title="カラムを閉じる"
+                onClick={() => closeModule(module.id)}
+              >
+                ×
+              </button>
+            ) : null}
             <div className="deckModuleBody">
               {module.view.type === "list" ? (
                 <ChannelListView onOpenChannel={(slug) => openChannelInModule(module.id, slug)} />

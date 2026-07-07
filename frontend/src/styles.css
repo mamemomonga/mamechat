@@ -3123,35 +3123,28 @@ body:has(.chatPage) {
   opacity: 0.5;
 }
 
-.deckModuleHeader {
+/* 閉じるボタンはカラム右上へ絶対配置し、本体コンテンツに重ねる。 */
+.deckModuleClose {
   align-items: center;
   background: var(--surface-raised);
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  flex-shrink: 0;
-  gap: 0.5rem;
-  justify-content: space-between;
-  min-height: 2.1rem;
-  padding: 0.25rem 0.6rem;
-}
-.deckModuleLabel {
-  align-items: center;
-  color: var(--text-muted);
-  display: inline-flex;
-  font-size: 0.82rem;
-  font-weight: 600;
-  gap: 0.5rem;
-}
-.deckModuleClose {
-  background: transparent;
-  border: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
   color: var(--text-muted);
   cursor: pointer;
-  font-size: 1.2rem;
+  display: flex;
+  font-size: 1.1rem;
+  height: 1.7rem;
+  justify-content: center;
   line-height: 1;
-  padding: 0.1rem 0.4rem;
+  padding: 0;
+  position: absolute;
+  right: 0.5rem;
+  top: 0.4rem;
+  width: 1.7rem;
+  z-index: 6;
 }
 .deckModuleClose:hover {
+  border-color: var(--border-strong);
   color: var(--text);
 }
 
