@@ -232,6 +232,11 @@ function formatRemaining(totalSeconds: number): string {
   return `${minutes}:${ss}`;
 }
 
+// カラム（Deck）またはビューポートの高さがこれを下回ると、インラインの書き込み欄を
+// 隠してスマホと同じ「ボタン→フォーム」方式に切り替える。狭いカラムで投稿欄が
+// メッセージ表示を圧迫しないようにするため。
+const COMPACT_COMPOSER_MAX_HEIGHT = 800;
+
 type ChannelViewProps = {
   slug: string;
   // 以下はDeck埋め込み用。未指定＝通常のフルページ表示（モバイル/クラシック）。
@@ -288,6 +293,8 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
   const [isHandheldOS] = useState(detectHandheldOS);
   const [usesChannelInfoDrawer] = useState(detectChannelInfoDrawerOS);
   const [mobileComposerOpen, setMobileComposerOpen] = useState(false);
+  // カラム（またはビューポート）が低いとき true。スマホと同じボタン方式に切り替える。
+  const [compactHeight, setCompactHeight] = useState(false);
   // モバイルでチャンネル名タップ時に開く詳細ダイアログと、その中のオーナープロフィール表示。
   const [infoDialogOpen, setInfoDialogOpen] = useState(false);
   const [infoPopupUser, setInfoPopupUser] = useState<PopupUser | null>(null);
@@ -309,6 +316,8 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
   // 初回ロード時に一度だけ最下部へスクロールしたか。
   const initialScrolledRef = useRef(false);
   const mobileTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  // 高さ計測の起点（chatPage）。埋め込み時は親カラム、単独時はビューポートで判定する。
+  const chatPageRef = useRef<HTMLElement | null>(null);
   const ttsEnabledRef = useRef(ttsEnabled);
   const ttsVolumeRef = useRef(ttsVolume);
   const audioQueueRef = useRef<string[]>([]);
@@ -322,6 +331,9 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
   const isOwner = !!user && !!channel && channel.ownerUserId === user.id;
   // ゴーストモード中は閲覧のみ（書き込み不可）。
   const ghostMode = !!user?.ghostMode;
+  // スマホ、または低いカラム/ウィンドウでは、インライン投稿欄を隠して
+  // 「書き込み」ボタン→フォーム（オーバーレイ）方式にする。
+  const useComposerButton = isHandheldOS || compactHeight;
   // 営業中（終了予定時刻あり＝カウントダウン中）。時間制限なしのときはカウントダウンしない。
   const operating = !suspended && !operatingUnlimited && !!suspendDeadline;
   // 営業状態ボタンのLED: 営業中=緑点灯 / 準備中=緑消灯。
@@ -688,6 +700,39 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
       window.visualViewport?.removeEventListener("scroll", updateKeyboardInset);
     };
   }, [isHandheldOS, mobileComposerOpen]);
+
+  // カラム（埋め込み時）またはビューポート（単独時）の高さを監視し、
+  // COMPACT_COMPOSER_MAX_HEIGHT を下回るあいだ compactHeight を立てる。
+  useEffect(() => {
+    const el = chatPageRef.current;
+    if (!el) {
+      return;
+    }
+    // Deck埋め込み時は親カラム（.deckModule）の高さ、単独表示時はビューポート高さで判定する。
+    const column = el.closest(".deckModule") as HTMLElement | null;
+    if (column) {
+      const observer = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          setCompactHeight(entry.contentRect.height < COMPACT_COMPOSER_MAX_HEIGHT);
+        }
+      });
+      observer.observe(column);
+      return () => observer.disconnect();
+    }
+    const update = () => setCompactHeight(window.innerHeight < COMPACT_COMPOSER_MAX_HEIGHT);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  // ボタン方式でなくなったら（背高に戻る/PC化）開きかけの投稿フォームを閉じておく。
+  // これをしないと再び低くしたとき即座にオーバーレイが開いてしまう。
+  useEffect(() => {
+    if (!useComposerButton) {
+      setMobileComposerOpen(false);
+      setMobileKeyboardInset(0);
+    }
+  }, [useComposerButton]);
 
   // サスペンドまでの残り秒数を1秒ごとに更新する。
   useEffect(() => {
@@ -1409,7 +1454,10 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
           />
         </div>
       </div>
-      <section className={`chatPage${isHandheldOS ? " handheldChatPage" : ""}`}>
+      <section
+        ref={chatPageRef}
+        className={`chatPage${isHandheldOS ? " handheldChatPage" : ""}`}
+      >
         {!usesChannelInfoDrawer ? (
           <div className="channelActionsBar">{actionButtons}</div>
         ) : null}
@@ -1469,7 +1517,7 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
         {ghostMode ? (
           <p className="ghostNotice">👻 ゴーストモード中は閲覧のみで、書き込みはできません。</p>
         ) : null}
-        {!isHandheldOS && !ghostMode ? (
+        {!useComposerButton && !ghostMode ? (
           <ChatInput
             disabled={status !== "open"}
             maxLength={messageMaxLength}
@@ -1478,7 +1526,7 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
             onSendImage={sendImage}
           />
         ) : null}
-        {isHandheldOS && !ghostMode ? (
+        {useComposerButton && !ghostMode ? (
           <button
             type="button"
             className="mobileComposeButton"
@@ -1488,7 +1536,7 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
             書き込み
           </button>
         ) : null}
-        {isHandheldOS && mobileComposerOpen ? (
+        {useComposerButton && mobileComposerOpen ? (
           <div
             className="mobileComposerOverlay"
             role="presentation"
