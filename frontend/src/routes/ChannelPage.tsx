@@ -1486,7 +1486,9 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
         ) : null}
         {error ? <p className="formError">{error}</p> : null}
         {imageUploadError ? <p className="formError">{imageUploadError}</p> : null}
-        <div className="messageListSlot">
+        <div
+          className={`messageListSlot${useComposerButton && !ghostMode ? " hasComposeFab" : ""}`}
+        >
           <ChatMessageList
             messages={messages}
             canModerateMessages={isOwner || isPrivileged(user)}
@@ -1502,12 +1504,30 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
           {showScrollToBottom ? (
             <button
               type="button"
-              className="scrollToBottomButton"
+              className={`scrollToBottomButton${
+                useComposerButton && !ghostMode ? " raised" : ""
+              }`}
               onClick={scrollToBottom}
               aria-label="一番下までスクロール"
               title="一番下までスクロール"
             >
               <span className="scrollToBottomIcon" aria-hidden="true" />
+            </button>
+          ) : null}
+          {useComposerButton && !ghostMode ? (
+            <button
+              type="button"
+              className="composeFab"
+              aria-label="メッセージを入力"
+              title="書き込み"
+              onClick={openMobileComposer}
+            >
+              <svg className="composeFabIcon" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"
+                  fill="currentColor"
+                />
+              </svg>
             </button>
           ) : null}
         </div>
@@ -1525,16 +1545,6 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
             imageUploadEnabled={channel?.imageUploadEnabled ?? false}
             onSendImage={sendImage}
           />
-        ) : null}
-        {useComposerButton && !ghostMode ? (
-          <button
-            type="button"
-            className="mobileComposeButton"
-            aria-label="メッセージを入力"
-            onClick={openMobileComposer}
-          >
-            書き込み
-          </button>
         ) : null}
         {useComposerButton && mobileComposerOpen ? (
           <div

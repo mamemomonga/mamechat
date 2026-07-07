@@ -2036,6 +2036,12 @@ body:has(.chatPage) {
   width: 100%;
 }
 
+/* 書き込みFABを重ねるときは、最新メッセージがFABに隠れないよう、
+   スクロール末尾にFABの高さ（3.4rem）より少し高いスペースを確保する。 */
+.messageListSlot.hasComposeFab .messageList {
+  padding-bottom: 4.6rem;
+}
+
 .scrollToBottomButton {
   align-items: center;
   background: var(--accent);
@@ -2062,6 +2068,11 @@ body:has(.chatPage) {
 .scrollToBottomButton:focus-visible {
   outline: 3px solid rgb(255 255 255 / 70%);
   outline-offset: 2px;
+}
+
+/* 書き込みFAB（bottom:1rem・高さ3.4rem）と重ならないよう上へ逃がす。 */
+.scrollToBottomButton.raised {
+  bottom: 5rem;
 }
 
 .scrollToBottomIcon {
@@ -2819,20 +2830,37 @@ body:has(.chatPage) {
   padding-bottom: 0.75rem;
 }
 
-.mobileComposeButton {
+/* コンパクト時（スマホ／低カラム）の書き込みFAB。チャット表示エリアの右下に
+   円形の鉛筆アイコンとして重ねる。インライン欄を廃したぶんチャット領域は広がる。 */
+.composeFab {
   align-items: center;
   background: var(--accent);
-  border-radius: 6px;
-  box-shadow: none;
-  align-self: flex-end;
-  display: flex;
-  font-size: 0.95rem;
-  height: auto;
+  border: 1px solid color-mix(in srgb, var(--accent) 80%, #fff);
+  border-radius: 50%;
+  bottom: 1rem;
+  box-shadow: var(--shadow);
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  height: 3.4rem;
   justify-content: center;
-  line-height: 1;
-  margin-left: auto;
-  padding: 0.75rem 1.1rem;
-  width: auto;
+  padding: 0;
+  position: absolute;
+  right: 1rem;
+  width: 3.4rem;
+  z-index: 9;
+}
+.composeFab:hover {
+  background: var(--accent-hover);
+}
+.composeFab:focus-visible {
+  outline: 3px solid rgb(255 255 255 / 70%);
+  outline-offset: 2px;
+}
+.composeFabIcon {
+  display: block;
+  height: 1.5rem;
+  width: 1.5rem;
 }
 
 /* iOSなどでホーム画面から起動したPWA（standalone表示）専用のセーフエリア対応。
@@ -2857,9 +2885,12 @@ body:has(.chatPage) {
     padding-top: calc(var(--channel-info-handle-height) + env(safe-area-inset-top));
   }
 
-  /* 「書き込み」ボタンの縦位置は従来のまま。画面の丸みを避けてほんの少し左へ寄せる。 */
-  .mobileComposeButton {
-    margin-right: 1rem;
+  /* 書き込みFABはホームインジケータ／画面の丸みを避けて少し持ち上げる。 */
+  .composeFab {
+    bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+  .scrollToBottomButton.raised {
+    bottom: calc(5rem + env(safe-area-inset-bottom));
   }
 }
 
