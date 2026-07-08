@@ -1891,6 +1891,10 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
                 <dt>連続投稿の禁止</dt>
                 <dd>{labelFeatureEnabled(channel?.noConsecutivePosts)}</dd>
               </div>
+              <div className="channelInfoRow">
+                <dt>コメントなし添付の禁止</dt>
+                <dd>{labelFeatureEnabled(channel?.requireCommentForAttachment)}</dd>
+              </div>
             </dl>
             <p className="channelInfoDialogPermalink">
               <a href={`/channels/${slug}`} target="_blank" rel="noreferrer noopener">

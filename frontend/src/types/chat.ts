@@ -76,6 +76,8 @@ export type Channel = {
   imageUploadEnabled: boolean;
   // noConsecutivePosts が true のとき、自分の投稿の直後は他の人が投稿するまで書き込めない。
   noConsecutivePosts: boolean;
+  // requireCommentForAttachment が true のとき、コメントなしで画像・URLだけを投稿できない。
+  requireCommentForAttachment: boolean;
   createdAt: string;
   accessMode: ChannelAccessMode;
   // accessList はオーナー/管理者がチャンネル設定を取得したときのみ含まれる。

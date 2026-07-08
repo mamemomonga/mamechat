@@ -1549,14 +1549,15 @@ func (s *Server) updateChannelSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req struct {
-		Title              *string         `json:"title"`
-		Description        *string         `json:"description"`
-		UrlLinkifyEnabled  *bool           `json:"urlLinkifyEnabled"`
-		ImageUploadEnabled *bool           `json:"imageUploadEnabled"`
-		NoConsecutivePosts *bool           `json:"noConsecutivePosts"`
-		PostTtlHours       *int32          `json:"postTtlHours"`
-		AccessMode         *string         `json:"accessMode"`
-		AccessList         *[]access.Entry `json:"accessList"`
+		Title                       *string         `json:"title"`
+		Description                 *string         `json:"description"`
+		UrlLinkifyEnabled           *bool           `json:"urlLinkifyEnabled"`
+		ImageUploadEnabled          *bool           `json:"imageUploadEnabled"`
+		NoConsecutivePosts          *bool           `json:"noConsecutivePosts"`
+		RequireCommentForAttachment *bool           `json:"requireCommentForAttachment"`
+		PostTtlHours                *int32          `json:"postTtlHours"`
+		AccessMode                  *string         `json:"accessMode"`
+		AccessList                  *[]access.Entry `json:"accessList"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid json")
@@ -1602,11 +1603,16 @@ func (s *Server) updateChannelSettings(w http.ResponseWriter, r *http.Request) {
 	if req.NoConsecutivePosts != nil {
 		noConsecutivePosts = *req.NoConsecutivePosts
 	}
+	requireCommentForAttachment := channel.RequireCommentForAttachment
+	if req.RequireCommentForAttachment != nil {
+		requireCommentForAttachment = *req.RequireCommentForAttachment
+	}
 	if err := s.q.SetChannelFeatures(r.Context(), db.SetChannelFeaturesParams{
-		Slug:               channel.Slug,
-		UrlLinkifyEnabled:  urlLinkify,
-		ImageUploadEnabled: imageUpload,
-		NoConsecutivePosts: noConsecutivePosts,
+		Slug:                        channel.Slug,
+		UrlLinkifyEnabled:           urlLinkify,
+		ImageUploadEnabled:          imageUpload,
+		NoConsecutivePosts:          noConsecutivePosts,
+		RequireCommentForAttachment: requireCommentForAttachment,
 	}); err != nil {
 		slog.Error("set channel features failed", "channel", channel.Slug, "error", err)
 		writeError(w, http.StatusInternalServerError, "failed to update settings")
@@ -2126,13 +2132,15 @@ type channelResponse struct {
 	// NotifyEnabled は現在のユーザーが営業開始通知をオンにしているか（getChannelでのみ設定）。
 	NotifyEnabled bool `json:"notifyEnabled,omitempty"`
 	// PostTtlHours は投稿の寿命（時間）。6/24/72。
-	PostTtlHours       int32  `json:"postTtlHours"`
-	UrlLinkifyEnabled  bool   `json:"urlLinkifyEnabled"`
-	ImageUploadEnabled bool   `json:"imageUploadEnabled"`
+	PostTtlHours       int32 `json:"postTtlHours"`
+	UrlLinkifyEnabled  bool  `json:"urlLinkifyEnabled"`
+	ImageUploadEnabled bool  `json:"imageUploadEnabled"`
 	// NoConsecutivePosts は「自分以外が書き込むまで続けて書き込めない」設定。
-	NoConsecutivePosts bool   `json:"noConsecutivePosts"`
-	CreatedAt          string `json:"createdAt"`
-	AccessMode         string `json:"accessMode"`
+	NoConsecutivePosts bool `json:"noConsecutivePosts"`
+	// RequireCommentForAttachment は「コメントなしに画像・URLを添付することを禁止」設定。
+	RequireCommentForAttachment bool   `json:"requireCommentForAttachment"`
+	CreatedAt                   string `json:"createdAt"`
+	AccessMode                  string `json:"accessMode"`
 	// AccessList はオーナー/管理者向けのチャンネル取得・設定更新時のみ含める
 	// （第三者に許可/拒否リストの中身を漏らさない）。
 	AccessList *[]access.Entry `json:"accessList,omitempty"`
@@ -2263,17 +2271,18 @@ func apiAdminUser(user db.ListAdminUsersRow) adminUserResponse {
 
 func apiChannel(ch db.Channel) channelResponse {
 	out := channelResponse{
-		ID:                 strconv.FormatInt(ch.ID, 10),
-		Slug:               ch.Slug,
-		Title:              ch.Title,
-		Suspended:          ch.SuspendedAt.Valid,
-		OperatingUnlimited: ch.OperatingUnlimited,
-		PostTtlHours:       ch.PostTtlHours,
-		UrlLinkifyEnabled:  ch.UrlLinkifyEnabled,
-		ImageUploadEnabled: ch.ImageUploadEnabled,
-		NoConsecutivePosts: ch.NoConsecutivePosts,
-		CreatedAt:          ch.CreatedAt.UTC().Format(time.RFC3339Nano),
-		AccessMode:         access.NormalizeMode(ch.AccessMode),
+		ID:                          strconv.FormatInt(ch.ID, 10),
+		Slug:                        ch.Slug,
+		Title:                       ch.Title,
+		Suspended:                   ch.SuspendedAt.Valid,
+		OperatingUnlimited:          ch.OperatingUnlimited,
+		PostTtlHours:                ch.PostTtlHours,
+		UrlLinkifyEnabled:           ch.UrlLinkifyEnabled,
+		ImageUploadEnabled:          ch.ImageUploadEnabled,
+		NoConsecutivePosts:          ch.NoConsecutivePosts,
+		RequireCommentForAttachment: ch.RequireCommentForAttachment,
+		CreatedAt:                   ch.CreatedAt.UTC().Format(time.RFC3339Nano),
+		AccessMode:                  access.NormalizeMode(ch.AccessMode),
 	}
 	if ch.Description.Valid {
 		out.Description = ch.Description.String

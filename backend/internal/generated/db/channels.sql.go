@@ -9,7 +9,7 @@ import (
 const createChannel = `-- name: CreateChannel :one
 INSERT INTO channels (slug, title, description, owner_user_id, suspended_at)
 VALUES ($1, $2, $3, $4, now())
-RETURNING id, slug, title, description, owner_user_id, suspended_at, suspend_retention_hours, suspend_grace_seconds, operating_deadline, operating_unlimited, post_ttl_hours, created_at, updated_at, url_linkify_enabled, image_upload_enabled, no_consecutive_posts, access_mode, access_list
+RETURNING id, slug, title, description, owner_user_id, suspended_at, suspend_retention_hours, suspend_grace_seconds, operating_deadline, operating_unlimited, post_ttl_hours, created_at, updated_at, url_linkify_enabled, image_upload_enabled, no_consecutive_posts, require_comment_for_attachment, access_mode, access_list
 `
 
 type CreateChannelParams struct {
@@ -22,12 +22,12 @@ type CreateChannelParams struct {
 func (q *Queries) CreateChannel(ctx context.Context, arg CreateChannelParams) (Channel, error) {
 	row := q.db.QueryRow(ctx, createChannel, arg.Slug, arg.Title, arg.Description, arg.OwnerUserID)
 	var i Channel
-	err := row.Scan(&i.ID, &i.Slug, &i.Title, &i.Description, &i.OwnerUserID, &i.SuspendedAt, &i.SuspendRetentionHours, &i.SuspendGraceSeconds, &i.OperatingDeadline, &i.OperatingUnlimited, &i.PostTtlHours, &i.CreatedAt, &i.UpdatedAt, &i.UrlLinkifyEnabled, &i.ImageUploadEnabled, &i.NoConsecutivePosts, &i.AccessMode, &i.AccessList)
+	err := row.Scan(&i.ID, &i.Slug, &i.Title, &i.Description, &i.OwnerUserID, &i.SuspendedAt, &i.SuspendRetentionHours, &i.SuspendGraceSeconds, &i.OperatingDeadline, &i.OperatingUnlimited, &i.PostTtlHours, &i.CreatedAt, &i.UpdatedAt, &i.UrlLinkifyEnabled, &i.ImageUploadEnabled, &i.NoConsecutivePosts, &i.RequireCommentForAttachment, &i.AccessMode, &i.AccessList)
 	return i, err
 }
 
 const listChannels = `-- name: ListChannels :many
-SELECT id, slug, title, description, owner_user_id, suspended_at, suspend_retention_hours, suspend_grace_seconds, operating_deadline, operating_unlimited, post_ttl_hours, created_at, updated_at, url_linkify_enabled, image_upload_enabled, no_consecutive_posts, access_mode, access_list
+SELECT id, slug, title, description, owner_user_id, suspended_at, suspend_retention_hours, suspend_grace_seconds, operating_deadline, operating_unlimited, post_ttl_hours, created_at, updated_at, url_linkify_enabled, image_upload_enabled, no_consecutive_posts, require_comment_for_attachment, access_mode, access_list
 FROM channels
 ORDER BY created_at ASC
 `
@@ -41,7 +41,7 @@ func (q *Queries) ListChannels(ctx context.Context) ([]Channel, error) {
 	var items []Channel
 	for rows.Next() {
 		var i Channel
-		if err := rows.Scan(&i.ID, &i.Slug, &i.Title, &i.Description, &i.OwnerUserID, &i.SuspendedAt, &i.SuspendRetentionHours, &i.SuspendGraceSeconds, &i.OperatingDeadline, &i.OperatingUnlimited, &i.PostTtlHours, &i.CreatedAt, &i.UpdatedAt, &i.UrlLinkifyEnabled, &i.ImageUploadEnabled, &i.NoConsecutivePosts, &i.AccessMode, &i.AccessList); err != nil {
+		if err := rows.Scan(&i.ID, &i.Slug, &i.Title, &i.Description, &i.OwnerUserID, &i.SuspendedAt, &i.SuspendRetentionHours, &i.SuspendGraceSeconds, &i.OperatingDeadline, &i.OperatingUnlimited, &i.PostTtlHours, &i.CreatedAt, &i.UpdatedAt, &i.UrlLinkifyEnabled, &i.ImageUploadEnabled, &i.NoConsecutivePosts, &i.RequireCommentForAttachment, &i.AccessMode, &i.AccessList); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -50,7 +50,7 @@ func (q *Queries) ListChannels(ctx context.Context) ([]Channel, error) {
 }
 
 const getChannelBySlug = `-- name: GetChannelBySlug :one
-SELECT id, slug, title, description, owner_user_id, suspended_at, suspend_retention_hours, suspend_grace_seconds, operating_deadline, operating_unlimited, post_ttl_hours, created_at, updated_at, url_linkify_enabled, image_upload_enabled, no_consecutive_posts, access_mode, access_list
+SELECT id, slug, title, description, owner_user_id, suspended_at, suspend_retention_hours, suspend_grace_seconds, operating_deadline, operating_unlimited, post_ttl_hours, created_at, updated_at, url_linkify_enabled, image_upload_enabled, no_consecutive_posts, require_comment_for_attachment, access_mode, access_list
 FROM channels
 WHERE slug = $1
 `
@@ -58,7 +58,7 @@ WHERE slug = $1
 func (q *Queries) GetChannelBySlug(ctx context.Context, slug string) (Channel, error) {
 	row := q.db.QueryRow(ctx, getChannelBySlug, slug)
 	var i Channel
-	err := row.Scan(&i.ID, &i.Slug, &i.Title, &i.Description, &i.OwnerUserID, &i.SuspendedAt, &i.SuspendRetentionHours, &i.SuspendGraceSeconds, &i.OperatingDeadline, &i.OperatingUnlimited, &i.PostTtlHours, &i.CreatedAt, &i.UpdatedAt, &i.UrlLinkifyEnabled, &i.ImageUploadEnabled, &i.NoConsecutivePosts, &i.AccessMode, &i.AccessList)
+	err := row.Scan(&i.ID, &i.Slug, &i.Title, &i.Description, &i.OwnerUserID, &i.SuspendedAt, &i.SuspendRetentionHours, &i.SuspendGraceSeconds, &i.OperatingDeadline, &i.OperatingUnlimited, &i.PostTtlHours, &i.CreatedAt, &i.UpdatedAt, &i.UrlLinkifyEnabled, &i.ImageUploadEnabled, &i.NoConsecutivePosts, &i.RequireCommentForAttachment, &i.AccessMode, &i.AccessList)
 	return i, err
 }
 
@@ -300,20 +300,46 @@ func (q *Queries) SetChannelOperatingUnlimited(ctx context.Context, arg SetChann
 
 const setChannelFeatures = `-- name: SetChannelFeatures :exec
 UPDATE channels
-SET url_linkify_enabled = $2, image_upload_enabled = $3, no_consecutive_posts = $4, updated_at = now()
+SET url_linkify_enabled = $2, image_upload_enabled = $3, no_consecutive_posts = $4,
+    require_comment_for_attachment = $5, updated_at = now()
 WHERE slug = $1
 `
 
 type SetChannelFeaturesParams struct {
-	Slug               string `json:"slug"`
-	UrlLinkifyEnabled  bool   `json:"url_linkify_enabled"`
-	ImageUploadEnabled bool   `json:"image_upload_enabled"`
-	NoConsecutivePosts bool   `json:"no_consecutive_posts"`
+	Slug                        string `json:"slug"`
+	UrlLinkifyEnabled           bool   `json:"url_linkify_enabled"`
+	ImageUploadEnabled          bool   `json:"image_upload_enabled"`
+	NoConsecutivePosts          bool   `json:"no_consecutive_posts"`
+	RequireCommentForAttachment bool   `json:"require_comment_for_attachment"`
 }
 
 func (q *Queries) SetChannelFeatures(ctx context.Context, arg SetChannelFeaturesParams) error {
-	_, err := q.db.Exec(ctx, setChannelFeatures, arg.Slug, arg.UrlLinkifyEnabled, arg.ImageUploadEnabled, arg.NoConsecutivePosts)
+	_, err := q.db.Exec(ctx, setChannelFeatures,
+		arg.Slug,
+		arg.UrlLinkifyEnabled,
+		arg.ImageUploadEnabled,
+		arg.NoConsecutivePosts,
+		arg.RequireCommentForAttachment,
+	)
 	return err
+}
+
+const getChannelAttachmentPolicy = `-- name: GetChannelAttachmentPolicy :one
+SELECT require_comment_for_attachment, url_linkify_enabled
+FROM channels
+WHERE id = $1
+`
+
+type GetChannelAttachmentPolicyRow struct {
+	RequireCommentForAttachment bool `json:"require_comment_for_attachment"`
+	UrlLinkifyEnabled           bool `json:"url_linkify_enabled"`
+}
+
+func (q *Queries) GetChannelAttachmentPolicy(ctx context.Context, id int64) (GetChannelAttachmentPolicyRow, error) {
+	row := q.db.QueryRow(ctx, getChannelAttachmentPolicy, id)
+	var i GetChannelAttachmentPolicyRow
+	err := row.Scan(&i.RequireCommentForAttachment, &i.UrlLinkifyEnabled)
+	return i, err
 }
 
 const setChannelProfile = `-- name: SetChannelProfile :exec

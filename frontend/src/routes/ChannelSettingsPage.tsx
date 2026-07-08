@@ -156,6 +156,7 @@ export function ChannelSettingsPanel({ slug, onClose, onDeleted }: ChannelSettin
     urlLinkifyEnabled?: boolean;
     imageUploadEnabled?: boolean;
     noConsecutivePosts?: boolean;
+    requireCommentForAttachment?: boolean;
     postTtlHours?: number;
   }) {
     setSavingFeature(true);
@@ -419,6 +420,33 @@ export function ChannelSettingsPanel({ slug, onClose, onDeleted }: ChannelSettin
               <p className="muted">
                 書き込んだあと、自分以外の誰かが書き込むまで続けて書き込めないようにします。
               </p>
+              {(() => {
+                // 画像・URLのどちらも無効なら、この設定は意味を持たないのでグレーアウトする。
+                const attachmentOff =
+                  !channel.imageUploadEnabled && !channel.urlLinkifyEnabled;
+                return (
+                  <>
+                    <label
+                      className={`settingToggle${attachmentOff ? " settingToggleDisabled" : ""}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={channel.requireCommentForAttachment}
+                        disabled={savingFeature || attachmentOff}
+                        onChange={(event) =>
+                          void changeFeature({
+                            requireCommentForAttachment: event.target.checked,
+                          })
+                        }
+                      />
+                      コメントなし添付の禁止
+                    </label>
+                    <p className={`muted${attachmentOff ? " settingHintDisabled" : ""}`}>
+                      コメント（本文）なしで画像・URLだけを投稿できないようにします。
+                    </p>
+                  </>
+                );
+              })()}
               <label className="settingSelect">
                 投稿の寿命
                 <select

@@ -2,15 +2,15 @@
 -- 新規チャンネルは「準備中」（suspended_at = now()）で作成する。
 INSERT INTO channels (slug, title, description, owner_user_id, suspended_at)
 VALUES ($1, $2, $3, $4, now())
-RETURNING id, slug, title, description, owner_user_id, suspended_at, suspend_retention_hours, suspend_grace_seconds, operating_deadline, operating_unlimited, post_ttl_hours, created_at, updated_at, url_linkify_enabled, image_upload_enabled, no_consecutive_posts, access_mode, access_list;
+RETURNING id, slug, title, description, owner_user_id, suspended_at, suspend_retention_hours, suspend_grace_seconds, operating_deadline, operating_unlimited, post_ttl_hours, created_at, updated_at, url_linkify_enabled, image_upload_enabled, no_consecutive_posts, require_comment_for_attachment, access_mode, access_list;
 
 -- name: ListChannels :many
-SELECT id, slug, title, description, owner_user_id, suspended_at, suspend_retention_hours, suspend_grace_seconds, operating_deadline, operating_unlimited, post_ttl_hours, created_at, updated_at, url_linkify_enabled, image_upload_enabled, no_consecutive_posts, access_mode, access_list
+SELECT id, slug, title, description, owner_user_id, suspended_at, suspend_retention_hours, suspend_grace_seconds, operating_deadline, operating_unlimited, post_ttl_hours, created_at, updated_at, url_linkify_enabled, image_upload_enabled, no_consecutive_posts, require_comment_for_attachment, access_mode, access_list
 FROM channels
 ORDER BY created_at ASC;
 
 -- name: GetChannelBySlug :one
-SELECT id, slug, title, description, owner_user_id, suspended_at, suspend_retention_hours, suspend_grace_seconds, operating_deadline, operating_unlimited, post_ttl_hours, created_at, updated_at, url_linkify_enabled, image_upload_enabled, no_consecutive_posts, access_mode, access_list
+SELECT id, slug, title, description, owner_user_id, suspended_at, suspend_retention_hours, suspend_grace_seconds, operating_deadline, operating_unlimited, post_ttl_hours, created_at, updated_at, url_linkify_enabled, image_upload_enabled, no_consecutive_posts, require_comment_for_attachment, access_mode, access_list
 FROM channels
 WHERE slug = $1;
 
@@ -110,8 +110,15 @@ WHERE slug = $1;
 
 -- name: SetChannelFeatures :exec
 UPDATE channels
-SET url_linkify_enabled = $2, image_upload_enabled = $3, no_consecutive_posts = $4, updated_at = now()
+SET url_linkify_enabled = $2, image_upload_enabled = $3, no_consecutive_posts = $4,
+    require_comment_for_attachment = $5, updated_at = now()
 WHERE slug = $1;
+
+-- name: GetChannelAttachmentPolicy :one
+-- コメントなし添付禁止の判定用。設定と、URLケースの適用可否（URLリンク化）を返す。
+SELECT require_comment_for_attachment, url_linkify_enabled
+FROM channels
+WHERE id = $1;
 
 -- name: SetChannelProfile :exec
 UPDATE channels

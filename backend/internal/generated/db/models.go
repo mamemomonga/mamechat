@@ -87,24 +87,25 @@ type Session struct {
 }
 
 type Channel struct {
-	ID                    int64              `json:"id"`
-	Slug                  string             `json:"slug"`
-	Title                 string             `json:"title"`
-	Description           pgtype.Text        `json:"description"`
-	OwnerUserID           pgtype.Int8        `json:"owner_user_id"`
-	SuspendedAt           pgtype.Timestamptz `json:"suspended_at"`
-	SuspendRetentionHours pgtype.Int4        `json:"suspend_retention_hours"`
-	SuspendGraceSeconds   pgtype.Int4        `json:"suspend_grace_seconds"`
-	OperatingDeadline     pgtype.Timestamptz `json:"operating_deadline"`
-	OperatingUnlimited    bool               `json:"operating_unlimited"`
-	PostTtlHours          int32              `json:"post_ttl_hours"`
-	CreatedAt             time.Time          `json:"created_at"`
-	UpdatedAt             time.Time          `json:"updated_at"`
-	UrlLinkifyEnabled     bool               `json:"url_linkify_enabled"`
-	ImageUploadEnabled    bool               `json:"image_upload_enabled"`
-	AccessMode            string             `json:"access_mode"`
-	AccessList            []byte             `json:"access_list"`
-	NoConsecutivePosts    bool               `json:"no_consecutive_posts"`
+	ID                          int64              `json:"id"`
+	Slug                        string             `json:"slug"`
+	Title                       string             `json:"title"`
+	Description                 pgtype.Text        `json:"description"`
+	OwnerUserID                 pgtype.Int8        `json:"owner_user_id"`
+	SuspendedAt                 pgtype.Timestamptz `json:"suspended_at"`
+	SuspendRetentionHours       pgtype.Int4        `json:"suspend_retention_hours"`
+	SuspendGraceSeconds         pgtype.Int4        `json:"suspend_grace_seconds"`
+	OperatingDeadline           pgtype.Timestamptz `json:"operating_deadline"`
+	OperatingUnlimited          bool               `json:"operating_unlimited"`
+	PostTtlHours                int32              `json:"post_ttl_hours"`
+	CreatedAt                   time.Time          `json:"created_at"`
+	UpdatedAt                   time.Time          `json:"updated_at"`
+	UrlLinkifyEnabled           bool               `json:"url_linkify_enabled"`
+	ImageUploadEnabled          bool               `json:"image_upload_enabled"`
+	AccessMode                  string             `json:"access_mode"`
+	AccessList                  []byte             `json:"access_list"`
+	NoConsecutivePosts          bool               `json:"no_consecutive_posts"`
+	RequireCommentForAttachment bool               `json:"require_comment_for_attachment"`
 }
 
 type PushSubscription struct {

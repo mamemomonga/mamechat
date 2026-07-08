@@ -1010,6 +1010,15 @@ p {
   width: auto;
 }
 
+/* 画像・URLがどちらも無効で意味を持たない設定はグレーアウトする。 */
+.settingToggleDisabled,
+.settingHintDisabled {
+  opacity: 0.45;
+}
+.settingToggleDisabled {
+  cursor: not-allowed;
+}
+
 .settingSelect select {
   margin-left: auto;
   max-width: 220px;

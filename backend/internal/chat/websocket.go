@@ -195,6 +195,23 @@ func (h *WSHandler) handleChatMessage(ctx context.Context, client *Client, body 
 		_ = client.Enqueue(ErrorMessage("自分以外の誰かが書き込むまで続けて書き込めません"))
 		return
 	}
+	// コメントなし添付禁止のチャンネルでは、本文コメントを伴わない画像／URLのみの投稿を拒否する。
+	// 画像トークンを消費する前に、トークンの有無（imageToken）で画像添付を判定する。
+	if policy, err := h.Queries.GetChannelAttachmentPolicy(ctx, client.ChannelID); err != nil {
+		slog.Warn("get channel attachment policy failed", "channel", client.ChannelSlug, "error", err)
+	} else if policy.RequireCommentForAttachment {
+		comment, hasURL := attachmentComment(body)
+		if comment == "" {
+			if imageToken != "" {
+				_ = client.Enqueue(ErrorMessage("画像にはコメントを添えて投稿してください"))
+				return
+			}
+			if hasURL && policy.UrlLinkifyEnabled {
+				_ = client.Enqueue(ErrorMessage("URLにはコメントを添えて投稿してください"))
+				return
+			}
+		}
+	}
 	// 添付画像トークンがあればステージングから取り出して検証する。
 	image, hasImage, ok := h.resolveImage(ctx, client, imageToken)
 	if !ok {
@@ -372,6 +389,22 @@ func (h *WSHandler) readLimitBytes() int64 {
 		limit = maxWSMessageBytes
 	}
 	return int64(limit)
+}
+
+// attachmentComment は本文からURL（http/https で始まる空白区切りトークン）を取り除いた
+// 「コメント」部分と、URLを含んでいたかを返す。コメントが空なら実質的にコメントなし。
+// 「コメントなし添付禁止」の判定に使う。
+func attachmentComment(body string) (comment string, hasURL bool) {
+	var kept []string
+	for _, field := range strings.Fields(body) {
+		lower := strings.ToLower(field)
+		if strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://") {
+			hasURL = true
+			continue
+		}
+		kept = append(kept, field)
+	}
+	return strings.TrimSpace(strings.Join(kept, " ")), hasURL
 }
 
 func userTTSSpeakerUUID(user auth.UserSnapshot) string {
