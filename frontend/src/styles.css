@@ -581,6 +581,74 @@ p {
   justify-content: flex-end;
 }
 
+/* 「営業中」ボタンの噴きだし（準備中のオーナー向け案内）。ボタン直下に出す。 */
+.operatingControl {
+  position: relative;
+}
+.operatingHintBubble {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  left: 0;
+  padding: 0.75rem 0.85rem;
+  position: absolute;
+  top: calc(100% + 0.55rem);
+  width: min(280px, 78vw);
+  z-index: 30;
+}
+/* 上向きの三角（ボタンを指す）。 */
+.operatingHintBubble::before {
+  border-bottom: 8px solid var(--border-strong);
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  content: "";
+  left: 1.4rem;
+  position: absolute;
+  top: -8px;
+}
+.operatingHintBubble::after {
+  border-bottom: 7px solid var(--surface-raised);
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  content: "";
+  left: calc(1.4rem + 1px);
+  position: absolute;
+  top: -6px;
+}
+.operatingHintText {
+  color: var(--text);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  margin: 0 0 0.6rem;
+}
+.operatingHintFooter {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: space-between;
+}
+.operatingHintDontShow {
+  align-items: center;
+  color: var(--text-muted);
+  display: inline-flex;
+  font-size: 0.74rem;
+  gap: 0.35rem;
+}
+.operatingHintClose {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 0.3rem 0.8rem;
+}
+.operatingHintClose:hover {
+  background: var(--surface-hover);
+}
+
 /* 読み上げトグルはハードウェアのボタン/インジケータを模す。 */
 .ttsToggle {
   align-items: center;

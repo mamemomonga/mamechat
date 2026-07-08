@@ -24,6 +24,7 @@ import {
   uploadChannelImage,
 } from "../lib/api";
 import { getPushConfig, isPushEnvironmentSupported } from "../lib/pushNotify";
+import { isOperatingHintDismissed, setOperatingHintDismissed } from "../lib/operatingHint";
 import { resizeImageToJpeg } from "../lib/image";
 import { isAnimatedMedia, MEDIA_MAX_BYTES } from "../lib/media";
 import { labelChannelGrace, labelChannelRetention } from "../lib/suspendOptions";
@@ -282,6 +283,11 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
   const [ttsDialogOpen, setTtsDialogOpen] = useState(false);
   // 営業時間設定ダイアログ・営業延長ダイアログの開閉。
   const [operatingDialogOpen, setOperatingDialogOpen] = useState(false);
+  // 「準備中なので営業中にしよう」の噴きだし。永続非表示はブラウザ保存、
+  // この表示中の「閉じる」はセッション内で閉じるだけ。
+  const [operatingHintDismissedForever] = useState(isOperatingHintDismissed);
+  const [operatingHintClosed, setOperatingHintClosed] = useState(false);
+  const [operatingHintDontShow, setOperatingHintDontShow] = useState(false);
   const [extendDialogOpen, setExtendDialogOpen] = useState(false);
   const [operatingEndTimeDraft, setOperatingEndTimeDraft] = useState(() => defaultEndTimeValue(60));
   const [extendEndTimeDraft, setExtendEndTimeDraft] = useState(() => defaultEndTimeValue(60));
@@ -1336,11 +1342,22 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
     }
   }
 
+  // 準備中（＝営業中でない）ときだけ、オーナーへ営業中への切替を促す噴きだしを出す。
+  const showOperatingHint =
+    isOwner && suspended && !operatingHintDismissedForever && !operatingHintClosed;
+
+  function closeOperatingHint() {
+    if (operatingHintDontShow) {
+      setOperatingHintDismissed(true);
+    }
+    setOperatingHintClosed(true);
+  }
+
   // 操作ボタン群。順番は「営業中・読み上げ・通知」を左に並べ、「設定」だけ右寄せ。
   const actionButtons = (
     <>
       {isOwner ? (
-        <div className="ttsControls" aria-label="営業状態">
+        <div className="ttsControls operatingControl" aria-label="営業状態">
           <button
             type="button"
             className="ttsToggle operatingToggle"
@@ -1351,6 +1368,30 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
             <span className={`ttsLed ${operatingLed}`} aria-hidden="true" />
             営業中
           </button>
+          {showOperatingHint ? (
+            <div className="operatingHintBubble" role="dialog" aria-label="準備中のお知らせ">
+              <p className="operatingHintText">
+                現在このチャンネルは「準備中」になっているため、あなた以外の人が入ってくることができません。「営業中」に設定して、チャンネルをオープンにしましょう。
+              </p>
+              <div className="operatingHintFooter">
+                <label className="operatingHintDontShow">
+                  <input
+                    type="checkbox"
+                    checked={operatingHintDontShow}
+                    onChange={(event) => setOperatingHintDontShow(event.target.checked)}
+                  />
+                  今後このメッセージを表示しない
+                </label>
+                <button
+                  type="button"
+                  className="operatingHintClose"
+                  onClick={closeOperatingHint}
+                >
+                  閉じる
+                </button>
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : null}
       <div className="ttsControls" aria-label="読み上げ設定">

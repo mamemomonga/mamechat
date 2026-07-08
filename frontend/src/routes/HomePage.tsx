@@ -351,8 +351,9 @@ export function ChannelListView({ onOpenChannel }: ChannelListViewProps) {
             </>
           );
           // 準備中チャンネルはクリックで「開店したら通知」ダイアログを開く。
+          // ただしオーナーは自分の準備中チャンネルに入れるので、ダイアログを出さず遷移する。
           // 営業中チャンネルは従来どおりチャンネルへ遷移する。
-          return channel.suspended ? (
+          return channel.suspended && !isOwner ? (
             <div
               className={`${className} channelCardClickable`}
               key={channel.id}

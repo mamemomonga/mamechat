@@ -95,6 +95,26 @@ export default function DeckPage({ routeSlug }: DeckPageProps) {
         );
       }
       setActiveId(firstId);
+    } else if (routeSlug) {
+      // シード済みでも、非deckルート（チャンネル作成/設定など）から特定チャンネルのURLへ
+      // 戻ってきてそのチャンネルがどのカラムにも無ければ開く。チャンネル作成直後に新しい
+      // チャンネルへ入るケースなど（外部ナビeffectは初回マウント時はスキップするため）。
+      const list = modulesRef.current;
+      const existing = list.find((m) => channelSlugOf(m.view) === routeSlug);
+      if (existing) {
+        setActiveId(existing.id);
+      } else if (list.length > 0) {
+        const targetId =
+          activeIdRef.current && list.some((m) => m.id === activeIdRef.current)
+            ? activeIdRef.current
+            : list[0].id;
+        setModules((prev) =>
+          prev.map((m) =>
+            m.id === targetId ? { ...m, view: { type: "channel", slug: routeSlug } } : m,
+          ),
+        );
+        setActiveId(targetId);
+      }
     }
     setReady(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
