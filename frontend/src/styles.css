@@ -622,32 +622,32 @@ p {
   line-height: 1.5;
   margin: 0 0 0.6rem;
 }
+/* フッターはブロック積み。flexだとCJKラベルが1文字幅に潰れて縦並び・はみ出しに
+   なることがあるため、通常フローのブロックで全幅を確保しテキストを折り返させる。 */
 .operatingHintFooter {
-  align-items: stretch;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
+  display: block;
 }
 .operatingHintDontShow {
-  align-items: flex-start;
   color: var(--text-muted);
-  display: flex;
+  display: block;
   font-size: 0.74rem;
-  gap: 0.4rem;
-  line-height: 1.4;
+  line-height: 1.5;
+  margin-bottom: 0.6rem;
+  overflow-wrap: anywhere;
 }
 .operatingHintDontShow input {
-  flex-shrink: 0;
-  margin: 0.1rem 0 0;
+  margin: 0 0.4rem 0 0;
+  vertical-align: -0.1em;
 }
 .operatingHintClose {
-  align-self: flex-end;
   background: var(--surface);
   border: 1px solid var(--border-strong);
   border-radius: 7px;
   color: var(--text);
   cursor: pointer;
+  display: block;
   font-size: 0.8rem;
+  margin-left: auto;
   padding: 0.3rem 0.9rem;
 }
 .operatingHintClose:hover {
