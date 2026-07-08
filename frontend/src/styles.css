@@ -623,27 +623,32 @@ p {
   margin: 0 0 0.6rem;
 }
 .operatingHintFooter {
-  align-items: center;
+  align-items: stretch;
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 0.6rem;
 }
 .operatingHintDontShow {
-  align-items: center;
+  align-items: flex-start;
   color: var(--text-muted);
-  display: inline-flex;
+  display: flex;
   font-size: 0.74rem;
-  gap: 0.35rem;
+  gap: 0.4rem;
+  line-height: 1.4;
+}
+.operatingHintDontShow input {
+  flex-shrink: 0;
+  margin: 0.1rem 0 0;
 }
 .operatingHintClose {
+  align-self: flex-end;
   background: var(--surface);
   border: 1px solid var(--border-strong);
   border-radius: 7px;
   color: var(--text);
   cursor: pointer;
   font-size: 0.8rem;
-  padding: 0.3rem 0.8rem;
+  padding: 0.3rem 0.9rem;
 }
 .operatingHintClose:hover {
   background: var(--surface-hover);
