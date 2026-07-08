@@ -12,6 +12,11 @@ type Props = {
 const MARGIN = 8;
 const GAP = 6;
 const MIN_HEIGHT = 240;
+
+// タッチ端末（iOS/Android等）か。タッチではオープン時に検索欄を自動フォーカスしない
+// （キーボードのせり上がり・iOSのフォーカスズームを避ける）。
+const IS_TOUCH =
+  typeof window !== "undefined" && (window.matchMedia?.("(pointer: coarse)").matches ?? false);
 // ピッカーの実測前に使う概算サイズ（読み込み中の仮配置用）。
 const EST_WIDTH = 300;
 const EST_HEIGHT = 400;
@@ -36,8 +41,11 @@ function computePosition(
   width: number,
   naturalHeight: number,
 ): { top: number; left: number; height: number } {
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
+  // 可視領域（visualViewport）を基準にする。ズームやソフトキーボードで実際に見えている
+  // 範囲が縮んでも、その中へ収まるように配置する。
+  const vv = typeof window !== "undefined" ? window.visualViewport : null;
+  const vw = vv?.width ?? window.innerWidth;
+  const vh = vv?.height ?? window.innerHeight;
   const spaceBelow = vh - anchor.bottom - GAP - MARGIN;
   const spaceAbove = anchor.top - GAP - MARGIN;
   // 下に自然な高さが収まる、または下の方が広ければ下に置く。
@@ -129,11 +137,16 @@ export default function EmojiPalette({ onSelect, onClose, anchorEl }: Props) {
     document.addEventListener("keydown", onKey);
     window.addEventListener("scroll", reposition, true);
     window.addEventListener("resize", reposition);
+    // iOSでのズーム/キーボードによる可視領域の変化にも追従する。
+    window.visualViewport?.addEventListener("resize", reposition);
+    window.visualViewport?.addEventListener("scroll", reposition);
     return () => {
       document.removeEventListener("mousedown", onDown);
       document.removeEventListener("keydown", onKey);
       window.removeEventListener("scroll", reposition, true);
       window.removeEventListener("resize", reposition);
+      window.visualViewport?.removeEventListener("resize", reposition);
+      window.visualViewport?.removeEventListener("scroll", reposition);
     };
   }, [reposition]);
 
@@ -164,7 +177,8 @@ export default function EmojiPalette({ onSelect, onClose, anchorEl }: Props) {
         emojiButtonSize: 34,
         emojiSize: 22,
         maxFrequentRows: 2,
-        autoFocus: true,
+        // タッチ端末では自動フォーカスしない（iOSのフォーカスズーム・キーボードを避ける）。
+        autoFocus: !IS_TOUCH,
         dynamicWidth: false,
         onEmojiSelect: (emoji: { native?: string }) => {
           if (emoji?.native) {
@@ -177,6 +191,14 @@ export default function EmojiPalette({ onSelect, onClose, anchorEl }: Props) {
       }
       hostRef.current.appendChild(picker);
       pickerRef.current = picker;
+      // iOS対策: 検索欄のフォントが16px未満だとフォーカス時に画面が自動ズームし、
+      // それが残って再オープン時に固定配置が崩れる。Shadow DOM内の入力欄を16pxに固定する。
+      const shadow = picker.shadowRoot;
+      if (shadow) {
+        const style = document.createElement("style");
+        style.textContent = "input { font-size: 16px !important; }";
+        shadow.appendChild(style);
+      }
       setReady(true);
     })();
     return () => {
