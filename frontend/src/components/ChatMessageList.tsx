@@ -53,7 +53,8 @@ export default function ChatMessageList({
   const [menuCanDelete, setMenuCanDelete] = useState(false);
   // 絵文字パレットを開いている投稿IDと、開く向き（上/下）。
   const [paletteMessageId, setPaletteMessageId] = useState<string | null>(null);
-  const [paletteDir, setPaletteDir] = useState<"up" | "down">("up");
+  // パレットを寄せる基準ボタン（クリックされた「リアクション追加」ボタン）。
+  const [paletteAnchor, setPaletteAnchor] = useState<HTMLElement | null>(null);
   // リアクション長押しの「誰が」ポップアップ。
   const [whoPopup, setWhoPopup] = useState<{ emoji: string; users: ReactionUser[] } | null>(null);
   const longPressTimer = useRef<number | undefined>(undefined);
@@ -207,9 +208,8 @@ export default function ChatMessageList({
                               setPaletteMessageId(null);
                               return;
                             }
-                            // 上に十分な余白があれば上向き、無ければ下向きに開く（見切れ防止）。
-                            const rect = event.currentTarget.getBoundingClientRect();
-                            setPaletteDir(rect.top > 300 ? "up" : "down");
+                            // クリックしたボタンを基準に、画面内へ収まる位置へパレットを出す。
+                            setPaletteAnchor(event.currentTarget);
                             setPaletteMessageId(message.id);
                           }}
                           aria-label="リアクションを追加"
@@ -219,7 +219,7 @@ export default function ChatMessageList({
                         </button>
                         {paletteMessageId === message.id ? (
                           <EmojiPalette
-                            direction={paletteDir}
+                            anchorEl={paletteAnchor}
                             onSelect={(emoji) => pickEmoji(message.id, emoji)}
                             onClose={() => setPaletteMessageId(null)}
                           />
