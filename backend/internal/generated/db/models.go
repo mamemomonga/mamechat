@@ -104,6 +104,7 @@ type Channel struct {
 	ImageUploadEnabled    bool               `json:"image_upload_enabled"`
 	AccessMode            string             `json:"access_mode"`
 	AccessList            []byte             `json:"access_list"`
+	NoConsecutivePosts    bool               `json:"no_consecutive_posts"`
 }
 
 type PushSubscription struct {

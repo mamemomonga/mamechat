@@ -223,6 +223,7 @@ export function updateChannelSettings(
     description?: string;
     urlLinkifyEnabled?: boolean;
     imageUploadEnabled?: boolean;
+    noConsecutivePosts?: boolean;
     postTtlHours?: number;
     accessMode?: ChannelAccessMode;
     accessList?: AccessEntry[];

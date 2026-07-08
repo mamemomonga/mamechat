@@ -187,6 +187,14 @@ func (h *WSHandler) handleChatMessage(ctx context.Context, client *Client, body 
 		_ = client.Enqueue(ErrorMessage("message body is too long"))
 		return
 	}
+	// 連続投稿禁止のチャンネルでは、直近の投稿が自分なら自分以外が投稿するまで書き込めない。
+	// 画像トークンを消費する前に判定する（拒否時にステージング画像を無駄にしないため）。
+	if guard, err := h.Queries.GetChannelRepostGuard(ctx, client.ChannelID); err != nil {
+		slog.Warn("get channel repost guard failed", "channel", client.ChannelSlug, "error", err)
+	} else if guard.NoConsecutivePosts && guard.LastUserID.Valid && guard.LastUserID.Int64 == client.User.ID {
+		_ = client.Enqueue(ErrorMessage("自分以外の誰かが書き込むまで続けて書き込めません"))
+		return
+	}
 	// 添付画像トークンがあればステージングから取り出して検証する。
 	image, hasImage, ok := h.resolveImage(ctx, client, imageToken)
 	if !ok {

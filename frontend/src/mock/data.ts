@@ -91,6 +91,7 @@ export function mockChannels(): Channel[] {
       postTtlHours: 24,
       urlLinkifyEnabled: true,
       imageUploadEnabled: true,
+      noConsecutivePosts: false,
       createdAt: "2026-05-28T12:00:00Z",
       accessMode: "whitelist",
     },
@@ -105,6 +106,7 @@ export function mockChannels(): Channel[] {
       postTtlHours: 72,
       urlLinkifyEnabled: true,
       imageUploadEnabled: true,
+      noConsecutivePosts: false,
       createdAt: "2026-06-01T09:30:00Z",
       // 準備後の削除を無効（無限保持）にして∞バッジの表示を確認する。
       suspendRetentionHours: -1,
@@ -122,6 +124,7 @@ export function mockChannels(): Channel[] {
       postTtlHours: 6,
       urlLinkifyEnabled: true,
       imageUploadEnabled: true,
+      noConsecutivePosts: false,
       createdAt: "2026-04-15T18:45:00Z",
       accessMode: "none",
     },
@@ -144,6 +147,7 @@ export function mockChannelBySlug(slug: string): Channel {
     postTtlHours: 24,
     urlLinkifyEnabled: true,
     imageUploadEnabled: true,
+    noConsecutivePosts: false,
     createdAt: "2026-05-28T12:00:00Z",
     accessMode: "none",
   };

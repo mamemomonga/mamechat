@@ -1553,6 +1553,7 @@ func (s *Server) updateChannelSettings(w http.ResponseWriter, r *http.Request) {
 		Description        *string         `json:"description"`
 		UrlLinkifyEnabled  *bool           `json:"urlLinkifyEnabled"`
 		ImageUploadEnabled *bool           `json:"imageUploadEnabled"`
+		NoConsecutivePosts *bool           `json:"noConsecutivePosts"`
 		PostTtlHours       *int32          `json:"postTtlHours"`
 		AccessMode         *string         `json:"accessMode"`
 		AccessList         *[]access.Entry `json:"accessList"`
@@ -1597,10 +1598,15 @@ func (s *Server) updateChannelSettings(w http.ResponseWriter, r *http.Request) {
 	if req.ImageUploadEnabled != nil {
 		imageUpload = *req.ImageUploadEnabled
 	}
+	noConsecutivePosts := channel.NoConsecutivePosts
+	if req.NoConsecutivePosts != nil {
+		noConsecutivePosts = *req.NoConsecutivePosts
+	}
 	if err := s.q.SetChannelFeatures(r.Context(), db.SetChannelFeaturesParams{
 		Slug:               channel.Slug,
 		UrlLinkifyEnabled:  urlLinkify,
 		ImageUploadEnabled: imageUpload,
+		NoConsecutivePosts: noConsecutivePosts,
 	}); err != nil {
 		slog.Error("set channel features failed", "channel", channel.Slug, "error", err)
 		writeError(w, http.StatusInternalServerError, "failed to update settings")
@@ -2123,6 +2129,8 @@ type channelResponse struct {
 	PostTtlHours       int32  `json:"postTtlHours"`
 	UrlLinkifyEnabled  bool   `json:"urlLinkifyEnabled"`
 	ImageUploadEnabled bool   `json:"imageUploadEnabled"`
+	// NoConsecutivePosts は「自分以外が書き込むまで続けて書き込めない」設定。
+	NoConsecutivePosts bool   `json:"noConsecutivePosts"`
 	CreatedAt          string `json:"createdAt"`
 	AccessMode         string `json:"accessMode"`
 	// AccessList はオーナー/管理者向けのチャンネル取得・設定更新時のみ含める
@@ -2263,6 +2271,7 @@ func apiChannel(ch db.Channel) channelResponse {
 		PostTtlHours:       ch.PostTtlHours,
 		UrlLinkifyEnabled:  ch.UrlLinkifyEnabled,
 		ImageUploadEnabled: ch.ImageUploadEnabled,
+		NoConsecutivePosts: ch.NoConsecutivePosts,
 		CreatedAt:          ch.CreatedAt.UTC().Format(time.RFC3339Nano),
 		AccessMode:         access.NormalizeMode(ch.AccessMode),
 	}

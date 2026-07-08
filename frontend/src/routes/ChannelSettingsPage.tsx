@@ -155,6 +155,7 @@ export function ChannelSettingsPanel({ slug, onClose, onDeleted }: ChannelSettin
   async function changeFeature(settings: {
     urlLinkifyEnabled?: boolean;
     imageUploadEnabled?: boolean;
+    noConsecutivePosts?: boolean;
     postTtlHours?: number;
   }) {
     setSavingFeature(true);
@@ -404,6 +405,20 @@ export function ChannelSettingsPanel({ slug, onClose, onDeleted }: ChannelSettin
                 画像アップロード
               </label>
               <p className="muted">チャット参加者が画像を投稿できるようにします。</p>
+              <label className="settingToggle">
+                <input
+                  type="checkbox"
+                  checked={channel.noConsecutivePosts}
+                  disabled={savingFeature}
+                  onChange={(event) =>
+                    void changeFeature({ noConsecutivePosts: event.target.checked })
+                  }
+                />
+                連続投稿の禁止
+              </label>
+              <p className="muted">
+                書き込んだあと、自分以外の誰かが書き込むまで続けて書き込めないようにします。
+              </p>
               <label className="settingSelect">
                 投稿の寿命
                 <select

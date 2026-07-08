@@ -1887,6 +1887,10 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
                 <dt>URLリンク化可否</dt>
                 <dd>{labelFeatureEnabled(channel?.urlLinkifyEnabled)}</dd>
               </div>
+              <div className="channelInfoRow">
+                <dt>連続投稿の禁止</dt>
+                <dd>{labelFeatureEnabled(channel?.noConsecutivePosts)}</dd>
+              </div>
             </dl>
             <p className="channelInfoDialogPermalink">
               <a href={`/channels/${slug}`} target="_blank" rel="noreferrer noopener">
