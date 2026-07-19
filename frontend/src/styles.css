@@ -807,8 +807,8 @@ p {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
-  /* タイトルエリアとの間に余白をあける（縦積みの gap に上乗せ）。 */
-  margin-top: 0.5rem;
+  /* タイトルエリアとの間に少しだけ余白をあける（縦積みの gap に上乗せ）。 */
+  margin-top: 0.15rem;
 }
 
 .channelActionsRow .ttsControls {
@@ -1845,11 +1845,11 @@ body:has(.chatPage) {
   grid-template-columns: minmax(0, 1fr);
 }
 
-/* ヘッダー内は縦積み（タイトルエリア → 操作ボタン列 → 在室表示）。 */
+/* ヘッダー内は縦積み（タイトルエリア → 操作ボタン列 → 在室表示）。行間は詰める。 */
 .channelRoomHeader .roomHeaderMain {
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
+  gap: 0.35rem;
   min-width: 0;
 }
 
@@ -1955,7 +1955,7 @@ body:has(.chatPage) {
 /* モバイル: オーナー/アクティブ表示は折り返さず1行（あふれた後半は隠す）。 */
 .compactChannelRoomHeader .channelPresence {
   flex-wrap: nowrap;
-  margin-top: 0.2rem;
+  margin-top: 0;
   overflow: hidden;
 }
 
