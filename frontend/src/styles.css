@@ -807,6 +807,8 @@ p {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
+  /* タイトルエリアとの間に余白をあける（縦積みの gap に上乗せ）。 */
+  margin-top: 0.5rem;
 }
 
 .channelActionsRow .ttsControls {
@@ -1851,9 +1853,11 @@ body:has(.chatPage) {
   min-width: 0;
 }
 
-/* 上段: 一覧に戻るボタン（正方形）＋ タイトルエリア。戻るボタンはタイトルエリアと
-   同じ高さの正方形にし、ボタン列の高さには重ならない（下にスペースが空く）。 */
+/* 上段: 一覧に戻るボタン（正方形）＋ タイトルエリア。戻るボタンとタイトルエリアは
+   同じ高さ（--title-h）に揃える。戻るボタンは幅＝高さの正方形（記号幅に潰れないよう
+   明示的に幅・高さを与える。stretch+aspect-ratioだと幅が記号幅になるため使わない）。 */
 .channelHeaderTop {
+  --title-h: 3.75rem;
   align-items: stretch;
   display: flex;
   gap: 0.5rem;
@@ -1875,12 +1879,9 @@ body:has(.chatPage) {
   text-decoration: none;
 }
 
-/* 正方形（幅＝高さ）。高さはタイトルエリアに揃えて伸びる。 */
 .channelHeaderTop .channelBackButton {
-  align-self: stretch;
-  aspect-ratio: 1;
-  height: auto;
-  width: auto;
+  height: var(--title-h);
+  width: var(--title-h);
 }
 
 .channelBackButton:hover {
@@ -1901,6 +1902,7 @@ body:has(.chatPage) {
   flex: 1;
   gap: 0.75rem;
   justify-content: space-between;
+  min-height: var(--title-h);
   min-width: 0;
   padding: 0.45rem 0.7rem;
   text-align: left;
