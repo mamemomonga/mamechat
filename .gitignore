@@ -12,6 +12,9 @@ frontend/dist/
 frontend/node_modules/
 frontend/tsconfig.tsbuildinfo
 
+# Playwright（.agents/tools）実行時にcwd次第で生成されることがある成果物
+test-results/
+
 backups/
 
 # nginx アクセスログ（ホストへバインドマウント、logrotateで保全。コミットしない）

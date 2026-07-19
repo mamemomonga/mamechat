@@ -810,8 +810,9 @@ p {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  margin: -1.2rem -1.2rem 0;
-  padding: 0.5rem 1.2rem;
+  /* chatPage の左右パディングを負マージンで打ち消して全幅バーにし、内側はテキスト領域に揃える。 */
+  margin: -1.2rem calc(-1 * var(--chat-h-pad)) 0;
+  padding: 0.5rem var(--chat-h-pad);
 }
 
 /* 枠内の「設定」ボタンはLEDボタン(.ttsToggle)と同じ高さ・意匠に合わせる。 */
@@ -833,17 +834,60 @@ p {
   padding: 0.15rem 0.6rem;
 }
 
-.operatingStatusTime {
-  color: var(--text-muted);
-  font-size: 0.9rem;
-}
-
 .operatingStatusClock {
   color: var(--text);
   font-family: ui-monospace, monospace;
   font-size: 1.1rem;
   font-weight: 700;
   margin-left: 0.2rem;
+}
+
+/* ヘッダー右上に置く営業ステータス（営業中バッヂ＋残り時間のマイナス表示）。
+   チャット領域のバーではなくタイトル行に収めるため、背景・枠・余白を落として詰める。 */
+.operatingStatusHeader {
+  background: transparent;
+  border: 0;
+  flex-shrink: 0;
+  gap: 0.4rem;
+  margin: 0 0 0 auto;
+  padding: 0;
+}
+
+.operatingStatusHeader .operatingStatusClock {
+  font-size: 0.95rem;
+  margin-left: 0;
+}
+
+.operatingStatusHeader .operatingExtendButton {
+  height: 22px;
+  margin-left: 0;
+  min-width: 28px;
+}
+
+/* LEDなしの操作ボタン（共有・営業設定・CH設定/CH情報）。LEDありボタン(.ttsToggle)と
+   同じ中立的な意匠（アクセント色ではない）に合わせる。右寄せは先頭ボタンの
+   .channelActionRight で行う。 */
+.channelActionButton {
+  background: var(--surface-raised);
+  border: 2px solid var(--border-strong);
+  border-radius: 8px;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.channelActionButton:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+.channelActionButton:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.channelActionRight {
+  margin-left: auto;
 }
 
 /* 残り時間の隣の延長ボタン（小さなアイコン）。 */
@@ -1640,10 +1684,14 @@ td select {
 }
 
 .chatPage {
+  /* チャット領域の左右インセット。ヘッダーのテキスト領域と同じ値にして、
+     メッセージ一覧の左端・スクロールバー（右端）を上部テキスト領域に揃える。 */
+  --chat-h-pad: clamp(0.8rem, 3vw, 2rem);
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
   min-height: 0;
+  padding: 1.2rem var(--chat-h-pad);
 }
 
 /* チャンネルページはビューポート高に収め、ヘッダー(アクティブ表示含む)を画面上部、
@@ -2066,6 +2114,92 @@ body:has(.chatPage) {
   text-align: right;
 }
 
+/* チャンネル詳細ダイアログ（情報／設定タブ）。設定タブは2カラム設定パネルを収めるため広くする。 */
+.channelDetailDialog {
+  max-width: min(94vw, 460px);
+}
+
+.channelDetailDialogWide {
+  max-width: min(94vw, 760px);
+}
+
+/* 情報／設定の切り替えタブ。 */
+.channelDetailTabs {
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 0.25rem;
+  margin: 0 0 0.9rem;
+}
+
+.channelDetailTab {
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.92rem;
+  font-weight: 700;
+  margin-bottom: -1px;
+  padding: 0.5rem 0.75rem;
+}
+
+.channelDetailTab:hover {
+  color: var(--text);
+}
+
+.channelDetailTab.active {
+  border-bottom-color: var(--accent-text);
+  color: var(--accent-text);
+}
+
+/* 情報タブ内でのチャンネル名見出し（ダイアログ見出しは「チャンネル情報/設定」なので別に出す）。 */
+.channelDetailChannelTitle {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 1.1rem;
+  gap: 0.5rem;
+  margin: 0 0 0.5rem;
+}
+
+/* 設定タブに埋め込む設定パネルの上余白を詰める。 */
+.channelDetailSettings > .muted:first-child {
+  margin-top: 0;
+}
+
+.channelDetailSettings .settingsLayout {
+  margin-top: 0.6rem;
+}
+
+/* 共有ダイアログ。コピーされる定型文を確認できるよう枠付きで表示する。 */
+.channelShareDialog {
+  max-width: min(94vw, 460px);
+}
+
+.channelShareHint {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin: 0 0 0.75rem;
+}
+
+.channelShareText {
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 0 0 1rem;
+  overflow-wrap: anywhere;
+  padding: 0.75rem 0.9rem;
+  white-space: pre-wrap;
+}
+
+.channelShareActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .statusPill {
   border-radius: 999px;
   color: #fff;
@@ -2097,14 +2231,16 @@ body:has(.chatPage) {
 }
 
 .messageList {
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  /* 枠なしでチャット領域いっぱいに広げる。左右パディングは 0 にして、
+     メッセージ本文の左端とスクロールバー（右端）を上部テキスト領域に揃える。 */
+  border: 0;
+  border-radius: 0;
   display: block;
   gap: 0.2rem;
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 0.75rem;
+  padding: 0.75rem 0;
 }
 
 .messageListSlot {

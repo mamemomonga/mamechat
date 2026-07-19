@@ -291,8 +291,13 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
   const [extendDialogOpen, setExtendDialogOpen] = useState(false);
   const [operatingEndTimeDraft, setOperatingEndTimeDraft] = useState(() => defaultEndTimeValue(60));
   const [extendEndTimeDraft, setExtendEndTimeDraft] = useState(() => defaultEndTimeValue(60));
-  // チャンネル設定ダイアログ（モーダル）の開閉。
-  const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
+  // チャンネル詳細ダイアログ（「チャンネル情報」「設定」タブ）の開閉と選択中タブ。
+  // タイトルまたは「CH設定/CH情報」ボタンから開く。既定は「チャンネル情報」タブ。
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [detailTab, setDetailTab] = useState<"info" | "settings">("info");
+  // 共有ダイアログ（SNS共有用の定型文をコピー）の開閉と、コピー完了フィードバック。
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
   const [messageMaxLength, setMessageMaxLength] = useState(400);
   // サーバ全体のホワイトリスト機能フラグ。無効時はホワイトリスト有効バッヂを出さない。
   const [whitelistEnabled, setWhitelistEnabled] = useState(false);
@@ -301,8 +306,7 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
   const [mobileComposerOpen, setMobileComposerOpen] = useState(false);
   // カラム（またはビューポート）が低いとき true。スマホと同じボタン方式に切り替える。
   const [compactHeight, setCompactHeight] = useState(false);
-  // モバイルでチャンネル名タップ時に開く詳細ダイアログと、その中のオーナープロフィール表示。
-  const [infoDialogOpen, setInfoDialogOpen] = useState(false);
+  // 詳細ダイアログ内のオーナープロフィール表示。
   const [infoPopupUser, setInfoPopupUser] = useState<PopupUser | null>(null);
   const [mobileDraft, setMobileDraft] = useState("");
   const [mobileKeyboardInset, setMobileKeyboardInset] = useState(0);
@@ -342,8 +346,11 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
   const useComposerButton = isHandheldOS || compactHeight;
   // 営業中（終了予定時刻あり＝カウントダウン中）。時間制限なしのときはカウントダウンしない。
   const operating = !suspended && !operatingUnlimited && !!suspendDeadline;
-  // 営業状態ボタンのLED: 営業中=緑点灯 / 準備中=緑消灯。
-  const operatingLed = suspended ? "operatingOff" : "operatingOn";
+  // 「CH設定/CH情報」ボタンとダイアログのタイトル。オーナーは設定、それ以外は情報。
+  const detailButtonLabel = isOwner ? "CH設定" : "CH情報";
+  const detailDialogTitle = isOwner ? "チャンネル設定" : "チャンネル情報";
+  // SNS共有用の定型文（コピーのみ、直接投稿はしない）。
+  const shareText = `${channel?.title ?? slug}を開いています。みんなあそびにきてね`;
   // 営業状態ダイアログのタイトル。準備中は開始系、営業中は終了。
   const operatingDialogTitle = !suspended
     ? "営業を終了"
@@ -1353,20 +1360,76 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
     setOperatingHintClosed(true);
   }
 
-  // 操作ボタン群。順番は「営業中・読み上げ・通知」を左に並べ、「設定」だけ右寄せ。
+  // チャンネル詳細ダイアログを開く。既定は「チャンネル情報」タブ。
+  function openDetail(tab: "info" | "settings" = "info") {
+    setDetailTab(tab);
+    setDetailDialogOpen(true);
+  }
+
+  // 共有ダイアログを開く（コピー完了表示はリセットする）。
+  function openShare() {
+    setShareCopied(false);
+    setShareDialogOpen(true);
+  }
+
+  // 共有用の定型文をクリップボードへコピーする（直接投稿はしない）。
+  async function copyShareText() {
+    try {
+      await navigator.clipboard.writeText(shareText);
+      setShareCopied(true);
+      window.setTimeout(() => setShareCopied(false), 2000);
+    } catch {
+      setShareCopied(false);
+      setError("コピーに失敗しました。表示中のテキストを手動でコピーしてください。");
+    }
+  }
+
+  // 操作ボタン群。LEDありボタン（読み上げ・通知）を左に、LEDなしボタン（共有・営業設定・
+  // CH設定/CH情報）を右に寄せる。右寄せは先頭の「共有」に margin-left:auto を効かせて行う。
   const actionButtons = (
     <>
-      {isOwner ? (
-        <div className="ttsControls operatingControl" aria-label="営業状態">
+      <div className="ttsControls" aria-label="読み上げ設定">
+        <button
+          type="button"
+          className={ttsEnabled ? "ttsToggle enabled" : "ttsToggle"}
+          onClick={openTTSDialog}
+        >
+          <span className={ttsEnabled ? "ttsLed on" : "ttsLed off"} aria-hidden="true" />
+          読み上げ
+        </button>
+      </div>
+      {pushAvailable ? (
+        <div className="ttsControls" aria-label="通知設定">
           <button
             type="button"
-            className="ttsToggle operatingToggle"
+            className={notifyEnabled ? "ttsToggle enabled" : "ttsToggle"}
+            onClick={() => void toggleNotify()}
+            disabled={notifyBusy}
+            title="このチャンネルが営業中になったら通知します"
+          >
+            <span className={notifyEnabled ? "ttsLed on" : "ttsLed off"} aria-hidden="true" />
+            通知
+          </button>
+        </div>
+      ) : null}
+      <button
+        type="button"
+        className="buttonLink channelActionButton channelActionRight"
+        onClick={openShare}
+        title="このチャンネルを共有するための定型文をコピーします"
+      >
+        共有
+      </button>
+      {isOwner ? (
+        <div className="operatingControl">
+          <button
+            type="button"
+            className="buttonLink channelActionButton"
             onClick={handleOperatingButton}
             disabled={operatingBusy}
-            title="クリックで営業状態を切り替えます"
+            title="営業状態を設定します"
           >
-            <span className={`ttsLed ${operatingLed}`} aria-hidden="true" />
-            営業中
+            営業設定
           </button>
           {showOperatingHint ? (
             <div className="operatingHintBubble" role="dialog" aria-label="準備中のお知らせ">
@@ -1394,39 +1457,13 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
           ) : null}
         </div>
       ) : null}
-      <div className="ttsControls" aria-label="読み上げ設定">
-        <button
-          type="button"
-          className={ttsEnabled ? "ttsToggle enabled" : "ttsToggle"}
-          onClick={openTTSDialog}
-        >
-          <span className={ttsEnabled ? "ttsLed on" : "ttsLed off"} aria-hidden="true" />
-          読み上げ
-        </button>
-      </div>
-      {pushAvailable ? (
-        <div className="ttsControls" aria-label="通知設定">
-          <button
-            type="button"
-            className={notifyEnabled ? "ttsToggle enabled" : "ttsToggle"}
-            onClick={() => void toggleNotify()}
-            disabled={notifyBusy}
-            title="このチャンネルが営業中になったら通知します"
-          >
-            <span className={notifyEnabled ? "ttsLed on" : "ttsLed off"} aria-hidden="true" />
-            通知
-          </button>
-        </div>
-      ) : null}
-      {isOwner ? (
-        <button
-          type="button"
-          className="buttonLink secondaryLink"
-          onClick={() => setSettingsDialogOpen(true)}
-        >
-          設定
-        </button>
-      ) : null}
+      <button
+        type="button"
+        className="buttonLink channelActionButton"
+        onClick={() => openDetail("info")}
+      >
+        {detailButtonLabel}
+      </button>
     </>
   );
 
@@ -1461,7 +1498,7 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
               <button
                 type="button"
                 className="channelTitleButton"
-                onClick={() => setInfoDialogOpen(true)}
+                onClick={() => openDetail("info")}
                 aria-label="チャンネル詳細を開く"
               >
                 {channel?.title ?? slug}
@@ -1472,7 +1509,7 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
                 <button
                   type="button"
                   className="channelTitleTextButton"
-                  onClick={() => setInfoDialogOpen(true)}
+                  onClick={() => openDetail("info")}
                   aria-label="チャンネル詳細を開く"
                 >
                   {channel?.title ?? slug}
@@ -1480,6 +1517,25 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
                 {accessBadge ? <span className="accessModeBadge">{accessBadge}</span> : null}
               </h1>
             )}
+            {/* 営業中は残り時間をヘッダー右上に表示する（マイナス表示）。 */}
+            {operating ? (
+              <div className="operatingStatus operatingStatusHeader">
+                <span className="operatingStatusLabel">営業中</span>
+                <span className="operatingStatusClock">-{formatRemaining(secondsLeft)}</span>
+                {isOwner ? (
+                  <button
+                    type="button"
+                    className="operatingExtendButton"
+                    onClick={openExtendDialog}
+                    disabled={operatingBusy}
+                    aria-label="営業を延長する"
+                    title="営業を延長する"
+                  >
+                    ⋯
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
           </div>
           {!usesChannelInfoDrawer && channel?.description ? <p>{channel.description}</p> : null}
           {/* モバイル（ドロワー）ではヘッダー内・在室表示の上にボタンを置く。
@@ -1501,26 +1557,6 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
       >
         {!usesChannelInfoDrawer ? (
           <div className="channelActionsBar">{actionButtons}</div>
-        ) : null}
-        {operating ? (
-          <div className="operatingStatus">
-            <span className="operatingStatusLabel">営業中</span>
-            <span className="operatingStatusTime">
-              残り <span className="operatingStatusClock">{formatRemaining(secondsLeft)}</span>
-            </span>
-            {isOwner ? (
-              <button
-                type="button"
-                className="operatingExtendButton"
-                onClick={openExtendDialog}
-                disabled={operatingBusy}
-                aria-label="営業を延長する"
-                title="営業を延長する"
-              >
-                ⋯
-              </button>
-            ) : null}
-          </div>
         ) : null}
         {suspended ? (
           <p className="formNotice">このチャンネルは準備中です。</p>
@@ -1819,134 +1855,174 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
           </div>
         ) : null}
       </section>
-      {infoDialogOpen ? (
+      {detailDialogOpen ? (
         <div
           className="channelInfoDialogOverlay"
           role="presentation"
-          onClick={() => setInfoDialogOpen(false)}
+          onClick={() => setDetailDialogOpen(false)}
         >
           <div
-            className="channelInfoDialog"
+            className={`channelInfoDialog channelDetailDialog${
+              detailTab === "settings" ? " channelDetailDialogWide" : ""
+            }`}
             role="dialog"
             aria-modal="true"
-            aria-label="チャンネル詳細"
+            aria-label={detailDialogTitle}
             onClick={(event) => event.stopPropagation()}
           >
             <button
               type="button"
               className="channelInfoDialogClose"
               aria-label="閉じる"
-              onClick={() => setInfoDialogOpen(false)}
+              onClick={() => setDetailDialogOpen(false)}
             >
               ×
             </button>
-            <h2 className="channelInfoDialogTitle">
-              {channel?.title ?? slug}
-              {accessBadge ? <span className="accessModeBadge">{accessBadge}</span> : null}
-            </h2>
-            <p className="channelInfoDialogDesc">
-              {channel?.description ? channel.description : "チャンネルの説明はありません。"}
-            </p>
-            {owner ? (
-              <div className="channelInfoDialogOwner">
+            <h2 className="channelInfoDialogTitle">{detailDialogTitle}</h2>
+            {/* オーナーは「チャンネル情報」「設定」を切り替え可能。それ以外は情報のみ。 */}
+            {isOwner ? (
+              <nav className="channelDetailTabs" aria-label="表示の切り替え">
                 <button
                   type="button"
-                  className="channelInfoDialogOwnerAvatar"
-                  onClick={() => setInfoPopupUser(owner.user)}
-                  aria-label={`${owner.user.displayName}のプロフィール`}
+                  className={`channelDetailTab${detailTab === "info" ? " active" : ""}`}
+                  aria-current={detailTab === "info" ? "page" : undefined}
+                  onClick={() => setDetailTab("info")}
                 >
-                  <UserAvatar
-                    displayName={owner.user.displayName}
-                    avatarUrl={owner.user.avatarUrl}
-                  />
+                  チャンネル情報
                 </button>
-                <div className="channelInfoDialogOwnerMeta">
-                  <span className="channelInfoDialogOwnerLabel">オーナー</span>
-                  <strong>{owner.user.displayName}</strong>
-                </div>
-              </div>
+                <button
+                  type="button"
+                  className={`channelDetailTab${detailTab === "settings" ? " active" : ""}`}
+                  aria-current={detailTab === "settings" ? "page" : undefined}
+                  onClick={() => setDetailTab("settings")}
+                >
+                  設定
+                </button>
+              </nav>
             ) : null}
-            <dl className="channelInfoList">
-              <div className="channelInfoRow">
-                <dt>投稿の寿命</dt>
-                <dd>{labelPostTtlHours(channel)}</dd>
+            {detailTab === "info" ? (
+              <div className="channelDetailInfo">
+                <h3 className="channelDetailChannelTitle">
+                  {channel?.title ?? slug}
+                  {accessBadge ? <span className="accessModeBadge">{accessBadge}</span> : null}
+                </h3>
+                <p className="channelInfoDialogDesc">
+                  {channel?.description ? channel.description : "チャンネルの説明はありません。"}
+                </p>
+                {owner ? (
+                  <div className="channelInfoDialogOwner">
+                    <button
+                      type="button"
+                      className="channelInfoDialogOwnerAvatar"
+                      onClick={() => setInfoPopupUser(owner.user)}
+                      aria-label={`${owner.user.displayName}のプロフィール`}
+                    >
+                      <UserAvatar
+                        displayName={owner.user.displayName}
+                        avatarUrl={owner.user.avatarUrl}
+                      />
+                    </button>
+                    <div className="channelInfoDialogOwnerMeta">
+                      <span className="channelInfoDialogOwnerLabel">オーナー</span>
+                      <strong>{owner.user.displayName}</strong>
+                    </div>
+                  </div>
+                ) : null}
+                <dl className="channelInfoList">
+                  <div className="channelInfoRow">
+                    <dt>投稿の寿命</dt>
+                    <dd>{labelPostTtlHours(channel)}</dd>
+                  </div>
+                  <div className="channelInfoRow">
+                    <dt>オーナー離席後の自動閉店</dt>
+                    <dd>{labelChannelGrace(channel)}</dd>
+                  </div>
+                  <div className="channelInfoRow">
+                    <dt>閉店から削除されるまでの時間</dt>
+                    <dd>{labelChannelRetention(channel)}</dd>
+                  </div>
+                  <div className="channelInfoRow">
+                    <dt>画像アップロード可否</dt>
+                    <dd>{labelFeatureEnabled(channel?.imageUploadEnabled)}</dd>
+                  </div>
+                  <div className="channelInfoRow">
+                    <dt>URLリンク化可否</dt>
+                    <dd>{labelFeatureEnabled(channel?.urlLinkifyEnabled)}</dd>
+                  </div>
+                  <div className="channelInfoRow">
+                    <dt>連続投稿の禁止</dt>
+                    <dd>{labelFeatureEnabled(channel?.noConsecutivePosts)}</dd>
+                  </div>
+                  <div className="channelInfoRow">
+                    <dt>コメントなし添付の禁止</dt>
+                    <dd>{labelFeatureEnabled(channel?.requireCommentForAttachment)}</dd>
+                  </div>
+                </dl>
+                <p className="channelInfoDialogPermalink">
+                  <a href={`/channels/${slug}`} target="_blank" rel="noreferrer noopener">
+                    パーマリンク
+                  </a>
+                </p>
               </div>
-              <div className="channelInfoRow">
-                <dt>オーナー離席後の自動閉店</dt>
-                <dd>{labelChannelGrace(channel)}</dd>
+            ) : (
+              <div className="channelDetailSettings">
+                <ChannelSettingsPanel
+                  slug={slug}
+                  onClose={() => setDetailDialogOpen(false)}
+                  onDeleted={() => {
+                    setDetailDialogOpen(false);
+                    if (embedded) {
+                      onExit?.();
+                    } else {
+                      navigate("/");
+                    }
+                  }}
+                />
               </div>
-              <div className="channelInfoRow">
-                <dt>閉店から削除されるまでの時間</dt>
-                <dd>{labelChannelRetention(channel)}</dd>
-              </div>
-              <div className="channelInfoRow">
-                <dt>画像アップロード可否</dt>
-                <dd>{labelFeatureEnabled(channel?.imageUploadEnabled)}</dd>
-              </div>
-              <div className="channelInfoRow">
-                <dt>URLリンク化可否</dt>
-                <dd>{labelFeatureEnabled(channel?.urlLinkifyEnabled)}</dd>
-              </div>
-              <div className="channelInfoRow">
-                <dt>連続投稿の禁止</dt>
-                <dd>{labelFeatureEnabled(channel?.noConsecutivePosts)}</dd>
-              </div>
-              <div className="channelInfoRow">
-                <dt>コメントなし添付の禁止</dt>
-                <dd>{labelFeatureEnabled(channel?.requireCommentForAttachment)}</dd>
-              </div>
-            </dl>
-            <p className="channelInfoDialogPermalink">
-              <a href={`/channels/${slug}`} target="_blank" rel="noreferrer noopener">
-                パーマリンク
-              </a>
+            )}
+          </div>
+        </div>
+      ) : null}
+      {shareDialogOpen ? (
+        <div
+          className="channelInfoDialogOverlay"
+          role="presentation"
+          onClick={() => setShareDialogOpen(false)}
+        >
+          <div
+            className="channelInfoDialog channelShareDialog"
+            role="dialog"
+            aria-modal="true"
+            aria-label="チャンネルを共有"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="channelInfoDialogClose"
+              aria-label="閉じる"
+              onClick={() => setShareDialogOpen(false)}
+            >
+              ×
+            </button>
+            <h2 className="channelInfoDialogTitle">共有</h2>
+            <p className="channelShareHint">
+              SNS共有用の定型文です。下のテキストをコピーして、お好きなSNSに貼り付けてください。
             </p>
+            <p className="channelShareText">{shareText}</p>
+            <div className="channelShareActions">
+              <button
+                type="button"
+                className="buttonLink"
+                onClick={() => void copyShareText()}
+              >
+                {shareCopied ? "コピーしました" : "コピー"}
+              </button>
+            </div>
           </div>
         </div>
       ) : null}
       {infoPopupUser ? (
         <UserProfilePopup user={infoPopupUser} onClose={() => setInfoPopupUser(null)} />
-      ) : null}
-      {settingsDialogOpen ? (
-        <div
-          className="settingsModalOverlay"
-          role="presentation"
-          onClick={() => setSettingsDialogOpen(false)}
-        >
-          <div
-            className="settingsModal channelSettingsModal"
-            role="dialog"
-            aria-modal="true"
-            aria-label="チャンネル設定"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="settingsModalHeader">
-              <h2>チャンネル設定</h2>
-              <button
-                type="button"
-                className="settingsModalClose"
-                aria-label="閉じる"
-                onClick={() => setSettingsDialogOpen(false)}
-              >
-                ×
-              </button>
-            </div>
-            <div className="settingsModalBody">
-              <ChannelSettingsPanel
-                slug={slug}
-                onClose={() => setSettingsDialogOpen(false)}
-                onDeleted={() => {
-                  setSettingsDialogOpen(false);
-                  if (embedded) {
-                    onExit?.();
-                  } else {
-                    navigate("/");
-                  }
-                }}
-              />
-            </div>
-          </div>
-        </div>
       ) : null}
     </>
   );
