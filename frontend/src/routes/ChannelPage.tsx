@@ -288,7 +288,6 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
   const [operatingHintDismissedForever] = useState(isOperatingHintDismissed);
   const [operatingHintClosed, setOperatingHintClosed] = useState(false);
   const [operatingHintDontShow, setOperatingHintDontShow] = useState(false);
-  const [extendDialogOpen, setExtendDialogOpen] = useState(false);
   const [operatingEndTimeDraft, setOperatingEndTimeDraft] = useState(() => defaultEndTimeValue(60));
   const [extendEndTimeDraft, setExtendEndTimeDraft] = useState(() => defaultEndTimeValue(60));
   // チャンネル詳細ダイアログ（「チャンネル情報」「設定」タブ）の開閉と選択中タブ。
@@ -351,12 +350,15 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
   const detailDialogTitle = isOwner ? "チャンネル設定" : "チャンネル情報";
   // SNS共有用の定型文（コピーのみ、直接投稿はしない）。
   const shareText = `${channel?.title ?? slug}を開いています。みんなあそびにきてね`;
-  // 営業状態ダイアログのタイトル。準備中は開始系、営業中は終了。
-  const operatingDialogTitle = !suspended
-    ? "営業を終了"
-    : operatingUnlimited
+  // 営業設定ダイアログのタイトル。準備中は開始系、営業中（時間制限あり）は延長・終了、
+  // 営業中（時間制限なし）は終了。
+  const operatingDialogTitle = suspended
+    ? operatingUnlimited
       ? "営業を開始"
-      : "営業時間を設定";
+      : "営業時間を設定"
+    : operatingUnlimited
+      ? "営業を終了"
+      : "営業の延長・終了";
   // 入室許可バッヂはチャンネルページでは一般ユーザにも表示する。
   const accessBadge =
     channel?.accessMode === "whitelist" && whitelistEnabled
@@ -1202,16 +1204,13 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
     setTtsDialogOpen(true);
   }
 
-  // 営業状態ボタンの押下。無期限/時間制限あり・営業中/準備中のいずれでも
-  // ダイアログを開き、状況に応じた操作（時間選択・営業開始・準備中への切替）を提示する。
+  // 営業状態ボタン（営業設定）の押下。無期限/時間制限あり・営業中/準備中のいずれでも
+  // ダイアログを開き、状況に応じた操作（時間選択・営業開始・延長・準備中への切替）を提示する。
+  // 延長は営業中の場合にこのダイアログへ統合して表示する。
   function handleOperatingButton() {
     setOperatingEndTimeDraft(defaultEndTimeValue(60));
-    setOperatingDialogOpen(true);
-  }
-
-  function openExtendDialog() {
     setExtendEndTimeDraft(endTimeValueFromDeadline(suspendDeadline));
-    setExtendDialogOpen(true);
+    setOperatingDialogOpen(true);
   }
 
   // 時間制限なしチャンネルの開店（終了予定なしで営業中へ）。
@@ -1261,11 +1260,9 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
     setError("");
     try {
       await setOperatingDuration(slug, durationMinutes);
-      if (close === "start") {
-        setOperatingDialogOpen(false);
-      } else {
-        setExtendDialogOpen(false);
-      }
+      // 開始・延長のいずれもこの営業設定ダイアログ内で行うため、同じダイアログを閉じる。
+      void close;
+      setOperatingDialogOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "終了時刻の設定に失敗しました");
     } finally {
@@ -1299,7 +1296,7 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
     setError("");
     try {
       await extendOperating(slug, minutes);
-      setExtendDialogOpen(false);
+      setOperatingDialogOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "営業の延長に失敗しました");
     } finally {
@@ -1473,7 +1470,9 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
         className={`roomHeader channelRoomHeader${usesChannelInfoDrawer ? " compactChannelRoomHeader" : ""}`}
       >
         <div className="roomHeaderMain">
-          <div className="channelTitleRow">
+          {/* 上段: 一覧に戻る（正方形）＋ タイトルエリア（タイトル・説明・営業状態・
+              残り時間を1枠にまとめたクリック領域）。クリックでCH設定/CH情報を開く。 */}
+          <div className="channelHeaderTop">
             {embedded ? (
               <button
                 type="button"
@@ -1494,55 +1493,31 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
                 ‹
               </Link>
             )}
-            {usesChannelInfoDrawer ? (
-              <button
-                type="button"
-                className="channelTitleButton"
-                onClick={() => openDetail("info")}
-                aria-label="チャンネル詳細を開く"
-              >
-                {channel?.title ?? slug}
-                {accessBadge ? <span className="accessModeBadge">{accessBadge}</span> : null}
-              </button>
-            ) : (
-              <h1>
-                <button
-                  type="button"
-                  className="channelTitleTextButton"
-                  onClick={() => openDetail("info")}
-                  aria-label="チャンネル詳細を開く"
-                >
+            <button
+              type="button"
+              className="channelTitleArea"
+              onClick={() => openDetail("info")}
+              aria-label="チャンネル詳細を開く"
+            >
+              <span className="channelTitleAreaMain">
+                <span className="channelTitleAreaTitle">
                   {channel?.title ?? slug}
-                </button>
-                {accessBadge ? <span className="accessModeBadge">{accessBadge}</span> : null}
-              </h1>
-            )}
-            {/* 営業中は残り時間をヘッダー右上に表示する（マイナス表示）。 */}
-            {operating ? (
-              <div className="operatingStatus operatingStatusHeader">
-                <span className="operatingStatusLabel">営業中</span>
-                <span className="operatingStatusClock">-{formatRemaining(secondsLeft)}</span>
-                {isOwner ? (
-                  <button
-                    type="button"
-                    className="operatingExtendButton"
-                    onClick={openExtendDialog}
-                    disabled={operatingBusy}
-                    aria-label="営業を延長する"
-                    title="営業を延長する"
-                  >
-                    ⋯
-                  </button>
+                  {accessBadge ? <span className="accessModeBadge">{accessBadge}</span> : null}
+                </span>
+                {channel?.description ? (
+                  <span className="channelTitleAreaDesc">{channel.description}</span>
                 ) : null}
-              </div>
-            ) : null}
+              </span>
+              {operating ? (
+                <span className="channelTitleAreaStatus">
+                  <span className="operatingStatusLabel">営業中</span>
+                  <span className="operatingStatusClock">-{formatRemaining(secondsLeft)}</span>
+                </span>
+              ) : null}
+            </button>
           </div>
-          {!usesChannelInfoDrawer && channel?.description ? <p>{channel.description}</p> : null}
-          {/* モバイル（ドロワー）ではヘッダー内・在室表示の上にボタンを置く。
-              PC/Deckでは下のチャット領域（営業中残り時間表示の上）に枠付きで置く。 */}
-          {usesChannelInfoDrawer ? (
-            <div className="roomHeaderActions compactHeaderActions">{actionButtons}</div>
-          ) : null}
+          {/* 中段: 操作ボタン列（タイトルエリアの下）。 */}
+          <div className="channelActionsRow">{actionButtons}</div>
           <ChannelPresence
             owner={owner ?? undefined}
             members={members}
@@ -1555,9 +1530,6 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
         ref={chatPageRef}
         className={`chatPage${isHandheldOS ? " handheldChatPage" : ""}`}
       >
-        {!usesChannelInfoDrawer ? (
-          <div className="channelActionsBar">{actionButtons}</div>
-        ) : null}
         {suspended ? (
           <p className="formNotice">このチャンネルは準備中です。</p>
         ) : null}
@@ -1757,7 +1729,49 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
                   営業を開始します。手動で準備中にするまで営業を続けます。
                 </p>
               ) : null}
-              {!suspended ? (
+              {/* 営業中（時間制限あり）は延長操作をここに統合する。 */}
+              {!suspended && !operatingUnlimited ? (
+                <>
+                  <p className="operatingDialogHint">
+                    営業時間を延長できます。下のボタンか終了時刻で設定してください。
+                  </p>
+                  <div className="operatingDurationGrid">
+                    {EXTEND_DURATIONS.map((opt) => (
+                      <button
+                        key={opt.minutes}
+                        type="button"
+                        className="operatingDurationButton"
+                        onClick={() => void extendOperatingBy(opt.minutes)}
+                        disabled={operatingBusy}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                  <form
+                    className="operatingEndTimeForm"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      void setOperatingEndTime(extendEndTimeDraft, "extend");
+                    }}
+                  >
+                    <label className="operatingEndTimeField">
+                      <span>終了時刻を設定</span>
+                      <input
+                        type="time"
+                        value={extendEndTimeDraft}
+                        onChange={(event) => setExtendEndTimeDraft(event.target.value)}
+                        disabled={operatingBusy}
+                        required
+                      />
+                    </label>
+                    <button type="submit" className="operatingStartButton" disabled={operatingBusy}>
+                      設定
+                    </button>
+                  </form>
+                </>
+              ) : null}
+              {!suspended && operatingUnlimited ? (
                 <p className="operatingDialogHint">営業を終了して準備中に切り替えます。</p>
               ) : null}
               <div className="operatingDialogFooter">
@@ -1786,67 +1800,6 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
                   type="button"
                   className="operatingDialogClose"
                   onClick={() => setOperatingDialogOpen(false)}
-                >
-                  閉じる
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : null}
-        {extendDialogOpen ? (
-          <div
-            className="ttsDialogOverlay"
-            role="presentation"
-            onClick={() => setExtendDialogOpen(false)}
-          >
-            <div
-              className="ttsDialog operatingDialog"
-              role="dialog"
-              aria-modal="true"
-              aria-label="営業の延長"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <h2 className="ttsDialogTitle">営業を延長</h2>
-              <div className="operatingDurationGrid">
-                {EXTEND_DURATIONS.map((opt) => (
-                  <button
-                    key={opt.minutes}
-                    type="button"
-                    className="operatingDurationButton"
-                    onClick={() => void extendOperatingBy(opt.minutes)}
-                    disabled={operatingBusy}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-              <form
-                className="operatingEndTimeForm"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  void setOperatingEndTime(extendEndTimeDraft, "extend");
-                }}
-              >
-                <label className="operatingEndTimeField">
-                  <span>終了時刻を設定</span>
-                  <input
-                    type="time"
-                    value={extendEndTimeDraft}
-                    onChange={(event) => setExtendEndTimeDraft(event.target.value)}
-                    disabled={operatingBusy}
-                    required
-                  />
-                </label>
-                <button type="submit" className="operatingStartButton" disabled={operatingBusy}>
-                  設定
-                </button>
-              </form>
-              <div className="operatingDialogFooter">
-                <span />
-                <button
-                  type="button"
-                  className="operatingDialogClose"
-                  onClick={() => setExtendDialogOpen(false)}
                 >
                   閉じる
                 </button>

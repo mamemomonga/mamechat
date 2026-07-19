@@ -800,29 +800,30 @@ p {
   padding: 0.5rem 0.75rem;
 }
 
-/* 操作ボタン群（設定・営業中・読み上げ・通知）の枠。背景はそのまま、角丸・枠線なしで
-   チャット領域の上端に全幅で密着させる（上・左右のパディングを負マージンで打ち消す）。 */
-.channelActionsBar {
-  align-items: center;
-  background: var(--surface-sunken);
-  border: 0;
-  border-radius: 0;
+/* 操作ボタン列。タイトルエリアの下に置く。LEDあり(.ttsToggle)・なし(.channelActionButton)とも
+   同じ低めの高さ・大きさに揃える。右寄せは先頭の .channelActionRight（共有）で行う。 */
+.channelActionsRow {
+  align-items: stretch;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  /* chatPage の左右パディングを負マージンで打ち消して全幅バーにし、内側はテキスト領域に揃える。 */
-  margin: -1.2rem calc(-1 * var(--chat-h-pad)) 0;
-  padding: 0.5rem var(--chat-h-pad);
+  gap: 0.4rem;
 }
 
-/* 枠内の「設定」ボタンはLEDボタン(.ttsToggle)と同じ高さ・意匠に合わせる。 */
-.channelActionsBar .buttonLink {
+.channelActionsRow .ttsControls {
+  align-items: stretch;
+  display: flex;
+}
+
+.channelActionsRow .ttsToggle,
+.channelActionsRow .channelActionButton,
+.channelActionsRow .buttonLink {
   align-items: center;
-  border: 2px solid var(--border-strong);
-  border-radius: 8px;
+  border-radius: 7px;
+  border-width: 1px;
   display: inline-flex;
-  font-size: 0.82rem;
-  padding: 0.34rem 0.72rem;
+  font-size: 0.78rem;
+  min-height: 1.85rem;
+  padding: 0.15rem 0.62rem;
 }
 
 .operatingStatusLabel {
@@ -840,28 +841,6 @@ p {
   font-size: 1.1rem;
   font-weight: 700;
   margin-left: 0.2rem;
-}
-
-/* ヘッダー右上に置く営業ステータス（営業中バッヂ＋残り時間のマイナス表示）。
-   チャット領域のバーではなくタイトル行に収めるため、背景・枠・余白を落として詰める。 */
-.operatingStatusHeader {
-  background: transparent;
-  border: 0;
-  flex-shrink: 0;
-  gap: 0.4rem;
-  margin: 0 0 0 auto;
-  padding: 0;
-}
-
-.operatingStatusHeader .operatingStatusClock {
-  font-size: 0.95rem;
-  margin-left: 0;
-}
-
-.operatingStatusHeader .operatingExtendButton {
-  height: 22px;
-  margin-left: 0;
-  min-width: 28px;
 }
 
 /* LEDなしの操作ボタン（共有・営業設定・CH設定/CH情報）。LEDありボタン(.ttsToggle)と
@@ -1864,20 +1843,21 @@ body:has(.chatPage) {
   grid-template-columns: minmax(0, 1fr);
 }
 
+/* ヘッダー内は縦積み（タイトルエリア → 操作ボタン列 → 在室表示）。 */
 .channelRoomHeader .roomHeaderMain {
-  min-width: 0;
-}
-
-/* チャンネル名の左に置く「‹」戻るボタン（チャンネル一覧へ）。 */
-.channelTitleRow {
-  align-items: center;
   display: flex;
-  gap: 0.45rem;
+  flex-direction: column;
+  gap: 0.55rem;
   min-width: 0;
 }
 
-.channelTitleRow h1 {
-  margin-bottom: 0;
+/* 上段: 一覧に戻るボタン（正方形）＋ タイトルエリア。戻るボタンはタイトルエリアと
+   同じ高さの正方形にし、ボタン列の高さには重ならない（下にスペースが空く）。 */
+.channelHeaderTop {
+  align-items: stretch;
+  display: flex;
+  gap: 0.5rem;
+  min-width: 0;
 }
 
 .channelBackButton {
@@ -1888,13 +1868,19 @@ body:has(.chatPage) {
   color: var(--text);
   display: inline-flex;
   flex: none;
-  font-size: 1.4rem;
-  height: 2rem;
+  font-size: 1.6rem;
   justify-content: center;
   line-height: 1;
   padding: 0;
   text-decoration: none;
-  width: 2rem;
+}
+
+/* 正方形（幅＝高さ）。高さはタイトルエリアに揃えて伸びる。 */
+.channelHeaderTop .channelBackButton {
+  align-self: stretch;
+  aspect-ratio: 1;
+  height: auto;
+  width: auto;
 }
 
 .channelBackButton:hover {
@@ -1903,37 +1889,65 @@ body:has(.chatPage) {
   color: var(--accent-text);
 }
 
-.channelRoomHeader h1 {
-  font-size: 1.25rem;
-  margin-bottom: 0.15rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.channelRoomHeader p {
-  font-size: 0.82rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* モバイル: チャンネル名はタップで詳細ダイアログを開くボタン。 */
-.channelTitleButton {
-  background: none;
-  border: 0;
-  color: var(--text);
+/* タイトルエリア: タイトル・説明・営業状態・残り時間を1枠にまとめたクリック領域。 */
+.channelTitleArea {
+  align-items: center;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: inherit;
   cursor: pointer;
-  display: block;
+  display: flex;
+  flex: 1;
+  gap: 0.75rem;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 0.45rem 0.7rem;
+  text-align: left;
+}
+
+.channelTitleArea:hover {
+  border-color: var(--accent);
+}
+
+.channelTitleAreaMain {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.channelTitleAreaTitle {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
   font-size: 1.15rem;
   font-weight: 800;
-  margin-bottom: 0.15rem;
-  max-width: 100%;
+  gap: 0.4rem;
+  line-height: 1.25;
+  min-width: 0;
+}
+
+.channelTitleAreaDesc {
+  color: var(--text-muted);
+  font-size: 0.8rem;
   overflow: hidden;
-  padding: 0;
-  text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* 右側の営業状態（営業中バッヂ＋残り時間のマイナス表示）を縦積みで詰める。 */
+.channelTitleAreaStatus {
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 0.15rem;
+}
+
+.channelTitleAreaStatus .operatingStatusClock {
+  font-size: 0.95rem;
+  margin-left: 0;
 }
 
 /* モバイル: オーナー/アクティブ表示は折り返さず1行（あふれた後半は隠す）。 */
@@ -1945,36 +1959,6 @@ body:has(.chatPage) {
 
 .compactChannelRoomHeader .presenceAvatars {
   flex-wrap: nowrap;
-}
-
-/* モバイル: 営業中・読み上げ・チャンネル設定を1列に収める（折り返さない）。 */
-.compactHeaderActions {
-  flex-wrap: nowrap;
-  gap: 0.4rem;
-  justify-content: flex-start;
-  margin-top: 0.55rem;
-}
-
-.compactHeaderActions .ttsControls {
-  flex-shrink: 0;
-}
-
-.compactHeaderActions .ttsToggle {
-  font-size: 0.74rem;
-  gap: 0.3rem;
-  padding: 0.32rem 0.5rem;
-  white-space: nowrap;
-}
-
-.compactHeaderActions .ttsLed {
-  height: 11px;
-  width: 11px;
-}
-
-.compactHeaderActions .buttonLink {
-  font-size: 0.74rem;
-  padding: 0.34rem 0.5rem;
-  white-space: nowrap;
 }
 
 /* モバイルのチャンネル詳細ダイアログ。 */
@@ -2034,20 +2018,6 @@ body:has(.chatPage) {
 .channelInfoDialogPermalink a {
   color: var(--accent-text);
   font-size: 0.9rem;
-}
-
-/* PCヘッダー: タイトルをクリックで詳細ダイアログを開く（見出しの見た目のまま）。 */
-.channelTitleTextButton {
-  background: none;
-  border: 0;
-  color: inherit;
-  cursor: pointer;
-  font: inherit;
-  padding: 0;
-  text-align: left;
-}
-.channelTitleTextButton:hover {
-  text-decoration: underline;
 }
 
 .channelInfoDialogOwner {
