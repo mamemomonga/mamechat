@@ -348,8 +348,11 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
   // 「CH設定/CH情報」ボタンとダイアログのタイトル。オーナーは設定、それ以外は情報。
   const detailButtonLabel = isOwner ? "CH設定" : "CH情報";
   const detailDialogTitle = isOwner ? "チャンネル設定" : "チャンネル情報";
-  // SNS共有用の定型文（コピーのみ、直接投稿はしない）。
-  const shareText = `${channel?.title ?? slug}を開いています。みんなあそびにきてね`;
+  // 共有するチャンネルの絶対URL（SNSに貼れるようオリジン付き）。
+  const shareUrl =
+    typeof window !== "undefined" ? `${window.location.origin}/channels/${slug}` : `/channels/${slug}`;
+  // SNS共有用の定型文（コピーのみ、直接投稿はしない）。末尾にチャンネルのURLを含める。
+  const shareText = `${channel?.title ?? slug}を開いています。みんなあそびにきてね\n${shareUrl}`;
   // 営業設定ダイアログのタイトル。準備中は開始系、営業中（時間制限あり）は延長・終了、
   // 営業中（時間制限なし）は終了。
   const operatingDialogTitle = suspended
