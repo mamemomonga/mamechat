@@ -3411,6 +3411,9 @@ body:has(.chatPage) {
 .deckModuleBody > .contentColumn {
   border: 0;
   border-radius: 0;
+  /* flex アイテムとして縮まないようにする。縮むと中身だけが溢れてスクロールし、
+     背景(surface)が初期表示分しか描画されず、その下に最背面色が見えてしまう。 */
+  flex-shrink: 0;
   min-height: 100%;
 }
 .deckModuleBody > .chatPage {
