@@ -239,19 +239,23 @@ func (h *Hub) Unregister(client *Client) {
 		// 受けて評価し直し、営業を再開して自己修復する）。
 		if ownerID != 0 && !suspended && !operatingUnlimited {
 			now := time.Now()
-			if suspendEnabled {
+			remaining := max(operatingDeadline.Sub(now), 0)
+			// 離席タイマー（猶予）が残り営業時間より大きい場合は自動閉店を動かさない
+			// （残時間を延ばさない）。その場合は下の「通常営業」分岐で本来の終了予定時刻を使う。
+			awayTimerActive := suspendEnabled && !operatingDeadline.IsZero() && grace <= remaining
+			if suspendEnabled && (awayTimerActive || alreadyPaused) {
 				// 自動閉店あり：営業時間を凍結し、自動閉店（猶予）カウントダウンを残す。
 				anchor := ownerAbsentSince
 				if anchor.IsZero() {
 					anchor = now
 				}
-				if !alreadyPaused && !operatingDeadline.IsZero() {
+				if awayTimerActive && !alreadyPaused && !operatingDeadline.IsZero() {
 					// このノードでオーナーが退出した瞬間（まだ凍結していない）なら凍結する。
 					ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 					if _, err := h.q.PauseChannelOperating(ctx, slug); err != nil {
 						slog.Warn("pause channel operating failed", "channel", slug, "error", err)
 					} else {
-						secs := int32(max(operatingDeadline.Sub(now), 0) / time.Second)
+						secs := int32(remaining / time.Second)
 						if err := h.bus.Publish(ctx, slug, ChannelOperatingPaused(slug, anchor.Add(grace), secs)); err != nil {
 							slog.Warn("publish channel paused failed", "channel", slug, "error", err)
 						}
@@ -260,7 +264,8 @@ func (h *Hub) Unregister(client *Client) {
 				}
 				h.setSuspendTimer(slug, anchor.Add(grace))
 			} else if !operatingDeadline.IsZero() {
-				// 自動閉店なし：営業終了予定時刻まで通常営業（一時停止しない）。
+				// 自動閉店なし、または離席タイマーが残時間より大きい：
+				// 営業終了予定時刻まで通常営業（一時停止しない）。
 				h.setSuspendTimer(slug, operatingDeadline)
 			}
 		}
@@ -801,14 +806,17 @@ func (h *Hub) evaluateSuspend(channelSlug string) {
 			ch.ownerAbsentSince = now
 		}
 		if ch.operatingPausedRemaining == 0 && !ch.operatingDeadline.IsZero() {
-			// オーナー退出：営業残り時間を凍結し、自動閉店カウントダウンへ切り替える。
-			pauseRemaining = ch.operatingDeadline.Sub(now)
-			if pauseRemaining < 0 {
-				pauseRemaining = 0
+			remaining := max(ch.operatingDeadline.Sub(now), 0)
+			// 離席タイマー（猶予）が残り営業時間より大きい＝自動閉店時刻が本来の営業終了より
+			// 後ろになる（残時間が延びてしまう）場合は、離席タイマーを動かさない。
+			// 営業残り時間を凍結せず、本来の営業終了予定時刻まで通常どおり営業する。
+			if ch.grace <= remaining {
+				// オーナー退出：営業残り時間を凍結し、自動閉店カウントダウンへ切り替える。
+				pauseRemaining = remaining
+				ch.operatingPausedRemaining = pauseRemaining
+				ch.operatingDeadline = time.Time{}
+				pauseAutoClose = ch.ownerAbsentSince.Add(ch.grace)
 			}
-			ch.operatingPausedRemaining = pauseRemaining
-			ch.operatingDeadline = time.Time{}
-			pauseAutoClose = ch.ownerAbsentSince.Add(ch.grace)
 		}
 	}
 	deadline := h.computeSuspendDeadlineLocked(ch, ownerPresent, now)
