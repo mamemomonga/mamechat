@@ -3167,6 +3167,33 @@ body:has(.chatPage) {
   background: transparent;
 }
 
+/* 読み上げ中の投稿はアバターがぴょんぴょん跳ねる。 */
+.avatarButton.speaking {
+  animation: avatarHop 0.6s ease-in-out infinite;
+}
+
+@keyframes avatarHop {
+  0%,
+  100% {
+    transform: translateY(0) scaleY(1);
+  }
+  30% {
+    transform: translateY(-6px) scaleY(1.05);
+  }
+  55% {
+    transform: translateY(0) scaleY(0.94);
+  }
+  70% {
+    transform: translateY(-2px) scaleY(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .avatarButton.speaking {
+    animation: none;
+  }
+}
+
 .userPopupOverlay {
   align-items: center;
   background: var(--overlay);

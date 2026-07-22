@@ -281,6 +281,8 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
   const [ttsEnabled, setTtsEnabled] = useState(() => localStorage.getItem("ttsEnabled") === "true");
   const [ttsVolume, setTtsVolume] = useState(() => Number(localStorage.getItem("ttsVolume") || "0.8"));
   const [ttsDialogOpen, setTtsDialogOpen] = useState(false);
+  // 現在読み上げ中の投稿ID。該当投稿のアバターをぴょんぴょん跳ねさせる。
+  const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
   // 営業時間設定ダイアログ・営業延長ダイアログの開閉。
   const [operatingDialogOpen, setOperatingDialogOpen] = useState(false);
   // 「準備中なので営業中にしよう」の噴きだし。永続非表示はブラウザ保存、
@@ -329,7 +331,7 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
   const chatPageRef = useRef<HTMLElement | null>(null);
   const ttsEnabledRef = useRef(ttsEnabled);
   const ttsVolumeRef = useRef(ttsVolume);
-  const audioQueueRef = useRef<string[]>([]);
+  const audioQueueRef = useRef<{ url: string; messageId: string }[]>([]);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const audioPlayingRef = useRef(false);
   const audioUnlockingRef = useRef(false);
@@ -551,6 +553,7 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
       audioUnlockingRef.current = false;
       audioQueueRef.current = [];
       pendingTTSPartsRef.current.clear();
+      setSpeakingMessageId(null);
     };
   }, [navigate, slug]);
 
@@ -978,11 +981,12 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
 
   // cap は保持する最大キュー長。ライブ読み上げは古い投稿の洪水を避けるため20、
   // 「ここから読み上げる」は順序を保つため大きめにする。
-  function enqueueAudio(urls: string[], cap = 20) {
+  function enqueueAudio(messageId: string, urls: string[], cap = 20) {
     if (!ttsEnabledRef.current) {
       return;
     }
-    audioQueueRef.current = [...audioQueueRef.current, ...urls].slice(-cap);
+    const items = urls.map((url) => ({ url, messageId }));
+    audioQueueRef.current = [...audioQueueRef.current, ...items].slice(-cap);
     playNextAudio();
   }
 
@@ -1012,7 +1016,7 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
           .sort((a, b) => a.partIndex - b.partIndex)
           .map((part) => part.audioUrl);
         if (urls.length > 0) {
-          enqueueAudio(urls, 1000);
+          enqueueAudio(message.id, urls, 1000);
         }
       } catch {
         // 1件の失敗で全体を止めない。
@@ -1058,6 +1062,7 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
     const nextIndex = pending?.nextIndex ?? 0;
     pendingTTSPartsRef.current.delete(messageId);
     enqueueAudio(
+      messageId,
       [...parts]
         .filter((part) => part.partIndex >= nextIndex)
         .sort((a, b) => a.partIndex - b.partIndex)
@@ -1077,7 +1082,7 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
       pending.nextIndex += 1;
     }
     if (readyURLs.length > 0) {
-      enqueueAudio(readyURLs);
+      enqueueAudio(messageId, readyURLs);
     }
     if (pending.partCount !== undefined && pending.nextIndex >= pending.partCount) {
       pendingTTSPartsRef.current.delete(messageId);
@@ -1147,15 +1152,21 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
       audioUnlockingRef.current ||
       audioQueueRef.current.length === 0
     ) {
+      // これ以上再生する音声がなく、いま鳴っていないなら跳ねるのを止める。
+      if (audioQueueRef.current.length === 0 && !audioPlayingRef.current) {
+        setSpeakingMessageId(null);
+      }
       return;
     }
-    const url = audioQueueRef.current.shift();
-    if (!url) {
+    const item = audioQueueRef.current.shift();
+    if (!item) {
       return;
     }
     const audio = getAudioPlayer();
     audioPlayingRef.current = true;
-    audio.src = url;
+    // 読み上げ中の投稿を更新（同じ投稿の複数パートでは変わらない）。
+    setSpeakingMessageId(item.messageId);
+    audio.src = item.url;
     audio.volume = ttsVolumeRef.current;
     audio.load();
     void audio.play().catch((err: unknown) => {
@@ -1164,7 +1175,7 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
       audio.removeAttribute("src");
       audio.load();
       if (isAudioPlaybackBlocked(err)) {
-        audioQueueRef.current = [url, ...audioQueueRef.current].slice(0, 20);
+        audioQueueRef.current = [item, ...audioQueueRef.current].slice(0, 20);
         return;
       }
       playNextAudio();
@@ -1185,6 +1196,7 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
     }
     audioPlayingRef.current = false;
     audioUnlockingRef.current = false;
+    setSpeakingMessageId(null);
   }
 
   function enableTTS() {
@@ -1547,6 +1559,7 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
             currentUserId={user?.id}
             onDeleteMessage={deleteMessage}
             ttsEnabled={ttsEnabled}
+            speakingMessageId={speakingMessageId}
             onReadFrom={(messageId) => void readFromMessage(messageId)}
             linkifyUrls={channel?.urlLinkifyEnabled ?? false}
             listRef={listRef}

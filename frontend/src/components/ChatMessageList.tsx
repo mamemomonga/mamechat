@@ -25,6 +25,8 @@ type Props = {
   onDeleteMessage?: (messageId: string) => void;
   // ttsEnabled が false のときは「ここから読み上げる」をグレーアウトする。
   ttsEnabled?: boolean;
+  // 現在読み上げ中の投稿ID。該当投稿のアバターを跳ねさせる。
+  speakingMessageId?: string | null;
   onReadFrom?: (messageId: string) => void;
   linkifyUrls?: boolean;
   listRef?: Ref<HTMLDivElement>;
@@ -39,6 +41,7 @@ export default function ChatMessageList({
   currentUserId,
   onDeleteMessage,
   ttsEnabled = false,
+  speakingMessageId = null,
   onReadFrom,
   linkifyUrls = false,
   listRef,
@@ -102,11 +105,13 @@ export default function ChatMessageList({
           const previewUrl = linkifyUrls && message.body ? firstUrl(message.body) : null;
           // YouTubeリンクは埋め込みプレイヤーを表示し、OGPカードは出さない。
           const youtube = previewUrl ? parseYouTube(previewUrl) : null;
+          // 読み上げ中の投稿はアバターを跳ねさせる。
+          const isSpeaking = message.id === speakingMessageId;
           return (
             <article className={isOwn ? "messageRow own" : "messageRow"} key={message.id}>
               <button
                 type="button"
-                className="avatarButton"
+                className={isSpeaking ? "avatarButton speaking" : "avatarButton"}
                 aria-label={`${message.user.displayName}のプロフィール`}
                 onClick={() => setPopupUser(message.user)}
               >
