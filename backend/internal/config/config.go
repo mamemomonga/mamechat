@@ -39,11 +39,14 @@ type Config struct {
 	AtprotoPublicBaseURL string
 	AtprotoAuthServerURL string
 	AtprotoPublicAPIURL  string
-	AtprotoOAuthScope    string
-	AtprotoRedirectURL   string
-	MastodonRedirectURL  string
-	MisskeyRedirectURL   string
-	MessageMaxLength     int
+	// AtprotoPLCDirectoryURL は did:plc の DID ドキュメントを解決する PLC ディレクトリ。
+	// 独自PDSのログインでは DID から PDS・認可サーバを解決するために使う。
+	AtprotoPLCDirectoryURL string
+	AtprotoOAuthScope      string
+	AtprotoRedirectURL     string
+	MastodonRedirectURL    string
+	MisskeyRedirectURL     string
+	MessageMaxLength       int
 	// ActivePollSeconds はチャンネル一覧が在室/アクティブ状態を反映するために再取得する間隔（秒）。
 	ActivePollSeconds int
 	// BeaconSeconds はクライアントが「アクティブ」を申告するビーコンの送信間隔（秒）。
@@ -103,31 +106,32 @@ func Load() Config {
 	}
 
 	return Config{
-		AppEnv:               appEnv,
-		Version:              loadVersion(),
-		ServiceName:          getenv("SERVICE_NAME", "mamechat"),
-		HTTPAddr:             getenv("HTTP_ADDR", ":8080"),
-		DatabaseURL:          getenv("DATABASE_URL", "postgres://app:app@localhost:5432/app?sslmode=disable"),
-		RedisURL:             getenv("REDIS_URL", "redis://localhost:6379/0"),
-		SessionCookieName:    getenv("SESSION_COOKIE_NAME", "app_session"),
-		SessionTTL:           time.Duration(ttlHours) * time.Hour,
-		CORSAllowedOrigin:    getenv("CORS_ALLOWED_ORIGIN", "http://localhost:5173"),
-		SecureSessionCookie:  secureCookie,
-		OwnerPassword:        os.Getenv("OWNER_PASSWORD"),
-		OwnerDisplayName:     getenv("OWNER_DISPLAY_NAME", "Owner"),
-		OwnerHandle:          getenv("OWNER_HANDLE", "owner.local"),
-		OwnerAvatarURL:       os.Getenv("OWNER_AVATAR_URL"),
-		AtprotoPublicBaseURL: strings.TrimRight(getenv("ATPROTO_PUBLIC_BASE_URL", "http://localhost:8080"), "/"),
-		AtprotoAuthServerURL: strings.TrimRight(getenv("ATPROTO_AUTH_SERVER_URL", "https://bsky.social"), "/"),
-		AtprotoPublicAPIURL:  strings.TrimRight(getenv("ATPROTO_PUBLIC_API_URL", "https://public.api.bsky.app"), "/"),
-		AtprotoOAuthScope:    getenv("ATPROTO_OAUTH_SCOPE", "atproto transition:generic"),
-		AtprotoRedirectURL:   strings.TrimRight(getenv("ATPROTO_LOGIN_REDIRECT_URL", getenv("CORS_ALLOWED_ORIGIN", "http://localhost:5173")), "/"),
-		MastodonRedirectURL:  strings.TrimRight(getenv("MASTODON_LOGIN_REDIRECT_URL", getenv("CORS_ALLOWED_ORIGIN", "http://localhost:5173")), "/"),
-		MisskeyRedirectURL:   strings.TrimRight(getenv("MISSKEY_LOGIN_REDIRECT_URL", getenv("CORS_ALLOWED_ORIGIN", "http://localhost:5173")), "/"),
-		MessageMaxLength:     messageMaxLength,
-		ActivePollSeconds:    activePollSeconds,
-		BeaconSeconds:        beaconSeconds,
-		ActiveWindow:         time.Duration(activeWindowSeconds) * time.Second,
+		AppEnv:                 appEnv,
+		Version:                loadVersion(),
+		ServiceName:            getenv("SERVICE_NAME", "mamechat"),
+		HTTPAddr:               getenv("HTTP_ADDR", ":8080"),
+		DatabaseURL:            getenv("DATABASE_URL", "postgres://app:app@localhost:5432/app?sslmode=disable"),
+		RedisURL:               getenv("REDIS_URL", "redis://localhost:6379/0"),
+		SessionCookieName:      getenv("SESSION_COOKIE_NAME", "app_session"),
+		SessionTTL:             time.Duration(ttlHours) * time.Hour,
+		CORSAllowedOrigin:      getenv("CORS_ALLOWED_ORIGIN", "http://localhost:5173"),
+		SecureSessionCookie:    secureCookie,
+		OwnerPassword:          os.Getenv("OWNER_PASSWORD"),
+		OwnerDisplayName:       getenv("OWNER_DISPLAY_NAME", "Owner"),
+		OwnerHandle:            getenv("OWNER_HANDLE", "owner.local"),
+		OwnerAvatarURL:         os.Getenv("OWNER_AVATAR_URL"),
+		AtprotoPublicBaseURL:   strings.TrimRight(getenv("ATPROTO_PUBLIC_BASE_URL", "http://localhost:8080"), "/"),
+		AtprotoAuthServerURL:   strings.TrimRight(getenv("ATPROTO_AUTH_SERVER_URL", "https://bsky.social"), "/"),
+		AtprotoPublicAPIURL:    strings.TrimRight(getenv("ATPROTO_PUBLIC_API_URL", "https://public.api.bsky.app"), "/"),
+		AtprotoPLCDirectoryURL: strings.TrimRight(getenv("ATPROTO_PLC_DIRECTORY_URL", "https://plc.directory"), "/"),
+		AtprotoOAuthScope:      getenv("ATPROTO_OAUTH_SCOPE", "atproto transition:generic"),
+		AtprotoRedirectURL:     strings.TrimRight(getenv("ATPROTO_LOGIN_REDIRECT_URL", getenv("CORS_ALLOWED_ORIGIN", "http://localhost:5173")), "/"),
+		MastodonRedirectURL:    strings.TrimRight(getenv("MASTODON_LOGIN_REDIRECT_URL", getenv("CORS_ALLOWED_ORIGIN", "http://localhost:5173")), "/"),
+		MisskeyRedirectURL:     strings.TrimRight(getenv("MISSKEY_LOGIN_REDIRECT_URL", getenv("CORS_ALLOWED_ORIGIN", "http://localhost:5173")), "/"),
+		MessageMaxLength:       messageMaxLength,
+		ActivePollSeconds:      activePollSeconds,
+		BeaconSeconds:          beaconSeconds,
+		ActiveWindow:           time.Duration(activeWindowSeconds) * time.Second,
 
 		ChannelSuspendRetention: time.Duration(getenvInt("CHANNEL_SUSPEND_RETENTION_HOURS", 24)) * time.Hour,
 		ChannelSuspendGrace:     time.Duration(getenvInt("CHANNEL_SUSPEND_GRACE_MINUTES", 0)) * time.Minute,

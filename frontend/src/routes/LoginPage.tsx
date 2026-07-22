@@ -105,7 +105,9 @@ export default function LoginPage() {
               placeholder="alice.bsky.social"
               required
             />
-            <p className="commentText">.bsky.social は省略できます。</p>
+            <p className="commentText">
+              .bsky.social は省略できます。独自PDSのハンドル・DIDでもログインできます。
+            </p>
           </label>
           <button type="submit" disabled={atprotoLoading}>
             {atprotoLoading ? "認証ページへ移動中..." : "Blueskyでログイン"}

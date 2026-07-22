@@ -13,6 +13,7 @@ import (
 	"io"
 	"log/slog"
 	"math/big"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -53,6 +54,21 @@ type authServerMetadata struct {
 type parResponse struct {
 	RequestURI string `json:"request_uri"`
 	ExpiresIn  int    `json:"expires_in"`
+}
+
+// didDocument は DID ドキュメントのうち、PDS 解決に必要な部分だけを表す。
+type didDocument struct {
+	ID      string `json:"id"`
+	Service []struct {
+		ID              string `json:"id"`
+		Type            string `json:"type"`
+		ServiceEndpoint string `json:"serviceEndpoint"`
+	} `json:"service"`
+}
+
+// protectedResourceMetadata は PDS の oauth-protected-resource メタデータ。
+type protectedResourceMetadata struct {
+	AuthorizationServers []string `json:"authorization_servers"`
 }
 
 type tokenResponse struct {
@@ -119,11 +135,14 @@ func (c *Client) StartOAuth(ctx context.Context, identifier string) (string, err
 		slog.Warn("delete expired atproto oauth states failed", "error", err)
 	}
 
-	expectedDID, err := c.resolveExpectedDID(ctx, identifier)
+	// identifier(ハンドル/DID) から DID を解決し、その DID ドキュメントが指す PDS、
+	// さらに PDS が委任する認可サーバを辿る。これにより bsky.social に限らず
+	// 独自PDSでもログインできる。
+	expectedDID, authIssuer, err := c.resolveIdentity(ctx, identifier)
 	if err != nil {
 		return "", err
 	}
-	metadata, err := c.fetchAuthServerMetadata(ctx)
+	metadata, err := c.fetchAuthServerMetadata(ctx, authIssuer)
 	if err != nil {
 		return "", err
 	}
@@ -171,7 +190,7 @@ func (c *Client) StartOAuth(ctx context.Context, identifier string) (string, err
 
 	if _, err := c.q.CreateAtprotoOAuthState(ctx, db.CreateAtprotoOAuthStateParams{
 		State:                              state,
-		Issuer:                             c.cfg.AtprotoAuthServerURL,
+		Issuer:                             authIssuer,
 		AuthServerIssuer:                   metadata.Issuer,
 		AuthorizationEndpoint:              metadata.AuthorizationEndpoint,
 		TokenEndpoint:                      metadata.TokenEndpoint,
@@ -256,18 +275,208 @@ func (c *Client) CompleteOAuth(ctx context.Context, state, issuer, code string) 
 	return c.upsertProfile(ctx, profile, true)
 }
 
-func (c *Client) resolveExpectedDID(ctx context.Context, identifier string) (string, error) {
+// resolveIdentity は identifier(ハンドル/DID) から、ログインに使う DID と、
+// その利用者のPDSが委任する認可サーバのissuerを解決する。
+func (c *Client) resolveIdentity(ctx context.Context, identifier string) (did string, authIssuer string, err error) {
+	did, err = c.resolveDID(ctx, identifier)
+	if err != nil {
+		return "", "", err
+	}
+	pds, err := c.resolvePDS(ctx, did)
+	if err != nil {
+		return "", "", err
+	}
+	authIssuer, err = c.resolveAuthServer(ctx, pds)
+	if err != nil {
+		return "", "", err
+	}
+	return did, authIssuer, nil
+}
+
+// resolveDID はハンドルまたはDIDを DID へ解決する。
+// ハンドルは atproto の標準手順（DNS TXT → HTTPS well-known）で解決し、
+// いずれも失敗した場合のみ公開Appview（Blueskyにフェデレーション済みのアカウント）へフォールバックする。
+func (c *Client) resolveDID(ctx context.Context, identifier string) (string, error) {
 	if strings.HasPrefix(identifier, "did:") {
 		return identifier, nil
 	}
+	if did := c.resolveHandleViaDNS(ctx, identifier); did != "" {
+		return did, nil
+	}
+	if did := c.resolveHandleViaHTTP(ctx, identifier); did != "" {
+		return did, nil
+	}
 	profile, err := c.FetchProfile(ctx, identifier)
+	if err != nil {
+		return "", fmt.Errorf("resolve handle %q failed: %w", identifier, err)
+	}
+	if profile.DID == "" {
+		return "", fmt.Errorf("could not resolve handle %q to a DID", identifier)
+	}
+	return profile.DID, nil
+}
+
+// resolveHandleViaDNS は _atproto.<handle> の TXT レコード（did=...）からDIDを解決する。
+func (c *Client) resolveHandleViaDNS(ctx context.Context, handle string) string {
+	records, err := net.DefaultResolver.LookupTXT(ctx, "_atproto."+handle)
+	if err != nil {
+		return ""
+	}
+	for _, rec := range records {
+		rec = strings.TrimSpace(rec)
+		if after, ok := strings.CutPrefix(rec, "did="); ok {
+			did := strings.TrimSpace(after)
+			if strings.HasPrefix(did, "did:") {
+				return did
+			}
+		}
+	}
+	return ""
+}
+
+// resolveHandleViaHTTP は https://<handle>/.well-known/atproto-did からDIDを解決する。
+func (c *Client) resolveHandleViaHTTP(ctx context.Context, handle string) string {
+	endpoint := "https://" + handle + "/.well-known/atproto-did"
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return ""
+	}
+	res, err := c.http.Do(req)
+	if err != nil {
+		return ""
+	}
+	defer res.Body.Close()
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		return ""
+	}
+	body, err := io.ReadAll(io.LimitReader(res.Body, 1<<16))
+	if err != nil {
+		return ""
+	}
+	did := strings.TrimSpace(string(body))
+	if strings.HasPrefix(did, "did:") {
+		return did
+	}
+	return ""
+}
+
+// resolvePDS は DID ドキュメントを取得し、atproto PDS のサービスエンドポイントを返す。
+func (c *Client) resolvePDS(ctx context.Context, did string) (string, error) {
+	doc, err := c.fetchDIDDocument(ctx, did)
 	if err != nil {
 		return "", err
 	}
-	if profile.DID == "" {
-		return "", errors.New("atproto public profile did not include DID")
+	if doc.ID != "" && doc.ID != did {
+		return "", fmt.Errorf("DID document id mismatch: got %s want %s", doc.ID, did)
 	}
-	return profile.DID, nil
+	for _, svc := range doc.Service {
+		if strings.HasSuffix(svc.ID, "#atproto_pds") || svc.Type == "AtprotoPersonalDataServer" {
+			endpoint := strings.TrimRight(strings.TrimSpace(svc.ServiceEndpoint), "/")
+			if endpoint != "" {
+				return endpoint, nil
+			}
+		}
+	}
+	return "", fmt.Errorf("DID document %q has no atproto PDS service endpoint", did)
+}
+
+// fetchDIDDocument は did:plc / did:web の DID ドキュメントを取得する。
+func (c *Client) fetchDIDDocument(ctx context.Context, did string) (didDocument, error) {
+	var endpoint string
+	switch {
+	case strings.HasPrefix(did, "did:plc:"):
+		endpoint = c.cfg.AtprotoPLCDirectoryURL + "/" + did
+	case strings.HasPrefix(did, "did:web:"):
+		u, err := didWebToURL(did)
+		if err != nil {
+			return didDocument{}, err
+		}
+		endpoint = u
+	default:
+		return didDocument{}, fmt.Errorf("unsupported DID method: %s", did)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return didDocument{}, err
+	}
+	res, err := c.http.Do(req)
+	if err != nil {
+		return didDocument{}, err
+	}
+	defer res.Body.Close()
+	body, err := io.ReadAll(io.LimitReader(res.Body, 1<<20))
+	if err != nil {
+		return didDocument{}, err
+	}
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		return didDocument{}, fmt.Errorf("atproto DID document fetch failed: status=%d body=%s", res.StatusCode, truncate(body, 300))
+	}
+	var doc didDocument
+	if err := json.Unmarshal(body, &doc); err != nil {
+		return didDocument{}, err
+	}
+	return doc, nil
+}
+
+// resolveAuthServer は PDS の保護リソースメタデータから、委任先の認可サーバのissuerを返す。
+func (c *Client) resolveAuthServer(ctx context.Context, pds string) (string, error) {
+	endpoint := pds + "/.well-known/oauth-protected-resource"
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return "", err
+	}
+	res, err := c.http.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer res.Body.Close()
+	body, err := io.ReadAll(io.LimitReader(res.Body, 1<<20))
+	if err != nil {
+		return "", err
+	}
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		return "", fmt.Errorf("atproto protected resource metadata failed: status=%d body=%s", res.StatusCode, truncate(body, 300))
+	}
+	var meta protectedResourceMetadata
+	if err := json.Unmarshal(body, &meta); err != nil {
+		return "", err
+	}
+	if len(meta.AuthorizationServers) == 0 || strings.TrimSpace(meta.AuthorizationServers[0]) == "" {
+		return "", errors.New("atproto PDS protected resource metadata missing authorization_servers")
+	}
+	return normalizeURL(strings.TrimSpace(meta.AuthorizationServers[0])), nil
+}
+
+// didWebToURL は did:web を DID ドキュメントのURLに変換する。
+// 例: did:web:example.com            → https://example.com/.well-known/did.json
+//
+//	did:web:example.com:u:alice    → https://example.com/u/alice/did.json
+//	did:web:example.com%3A3000     → https://example.com:3000/.well-known/did.json
+func didWebToURL(did string) (string, error) {
+	rest := strings.TrimPrefix(did, "did:web:")
+	if rest == "" {
+		return "", errors.New("invalid did:web")
+	}
+	parts := strings.Split(rest, ":")
+	host, err := url.PathUnescape(parts[0])
+	if err != nil {
+		return "", fmt.Errorf("invalid did:web host: %w", err)
+	}
+	if host == "" {
+		return "", errors.New("invalid did:web host")
+	}
+	if len(parts) == 1 {
+		return "https://" + host + "/.well-known/did.json", nil
+	}
+	segs := make([]string, 0, len(parts)-1)
+	for _, p := range parts[1:] {
+		s, err := url.PathUnescape(p)
+		if err != nil {
+			return "", fmt.Errorf("invalid did:web path: %w", err)
+		}
+		segs = append(segs, s)
+	}
+	return "https://" + host + "/" + strings.Join(segs, "/") + "/did.json", nil
 }
 
 func (c *Client) FetchProfile(ctx context.Context, actor string) (ActorProfile, error) {
@@ -431,8 +640,8 @@ func (c *Client) upsertProfile(ctx context.Context, profile ActorProfile, verifi
 	return out, err
 }
 
-func (c *Client) fetchAuthServerMetadata(ctx context.Context) (authServerMetadata, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.cfg.AtprotoAuthServerURL+"/.well-known/oauth-authorization-server", nil)
+func (c *Client) fetchAuthServerMetadata(ctx context.Context, issuer string) (authServerMetadata, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, issuer+"/.well-known/oauth-authorization-server", nil)
 	if err != nil {
 		return authServerMetadata{}, err
 	}
@@ -454,6 +663,10 @@ func (c *Client) fetchAuthServerMetadata(ctx context.Context) (authServerMetadat
 	}
 	if metadata.Issuer == "" || metadata.AuthorizationEndpoint == "" || metadata.TokenEndpoint == "" || metadata.PushedAuthorizationRequestEndpoint == "" {
 		return authServerMetadata{}, errors.New("atproto auth metadata missing required endpoints")
+	}
+	// 認可サーバのメタデータは、要求したissuerと一致していなければならない（RFC 8414）。
+	if normalizeURL(metadata.Issuer) != normalizeURL(issuer) {
+		return authServerMetadata{}, fmt.Errorf("atproto auth metadata issuer mismatch: got %s want %s", metadata.Issuer, issuer)
 	}
 	return metadata, nil
 }
