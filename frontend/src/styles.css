@@ -590,20 +590,22 @@ p {
   border: 1px solid var(--border-strong);
   border-radius: 10px;
   box-shadow: var(--shadow);
-  left: 0;
-  padding: 0.75rem 0.85rem;
+  /* 営業設定ボタンはヘッダー右寄せのため、右端を基準に左へ広げて画面外へはみ出さないようにする。 */
+  left: auto;
+  right: 0;
+  padding: 0.85rem 1rem;
   position: absolute;
   top: calc(100% + 0.55rem);
-  width: min(280px, 78vw);
+  width: min(360px, 90vw);
   z-index: 30;
 }
-/* 上向きの三角（ボタンを指す）。 */
+/* 上向きの三角（ボタンを指す）。ボタン右寄せに合わせて右側へ寄せる。 */
 .operatingHintBubble::before {
   border-bottom: 8px solid var(--border-strong);
   border-left: 8px solid transparent;
   border-right: 8px solid transparent;
   content: "";
-  left: 1.4rem;
+  right: 1.4rem;
   position: absolute;
   top: -8px;
 }
@@ -612,7 +614,7 @@ p {
   border-left: 7px solid transparent;
   border-right: 7px solid transparent;
   content: "";
-  left: calc(1.4rem + 1px);
+  right: calc(1.4rem + 1px);
   position: absolute;
   top: -6px;
 }
@@ -627,17 +629,26 @@ p {
 .operatingHintFooter {
   display: block;
 }
+/* チェックボックスとキャプションはインラインフロー（checkbox のあとにテキストが続く）で
+   横並びにし、幅が足りなければ自然に折り返す。flex にすると CJK が1文字幅へ潰れて
+   縦並びになるため使わない。 */
 .operatingHintDontShow {
   color: var(--text-muted);
   display: block;
-  font-size: 0.74rem;
-  line-height: 1.5;
+  font-size: 0.78rem;
+  line-height: 1.6;
   margin-bottom: 0.6rem;
   overflow-wrap: anywhere;
 }
+/* フォーム既定の input { width:100% } を打ち消す。これがないとチェックボックスが
+   ラベル全幅へ広がり、キャプションが次の行へ押し出される。 */
 .operatingHintDontShow input {
   margin: 0 0.4rem 0 0;
   vertical-align: -0.1em;
+  width: auto;
+}
+.operatingHintDontShowText {
+  vertical-align: middle;
 }
 .operatingHintClose {
   background: var(--surface);
@@ -652,6 +663,17 @@ p {
 }
 .operatingHintClose:hover {
   background: var(--surface-hover);
+}
+/* スマホ幅では営業設定ボタンが右端近くに寄るため、ボタン基準の右端配置だと噴きだしが
+   画面左へはみ出す。ボタン列（ほぼヘッダー幅）を基準に右寄せして画面内へ収める。 */
+.compactChannelRoomHeader .channelActionsRow {
+  position: relative;
+}
+.compactChannelRoomHeader .operatingControl {
+  position: static;
+}
+.compactChannelRoomHeader .operatingHintBubble {
+  width: min(360px, 92vw);
 }
 
 /* 読み上げトグルはハードウェアのボタン/インジケータを模す。 */

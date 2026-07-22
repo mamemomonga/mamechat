@@ -1455,7 +1455,9 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
                     checked={operatingHintDontShow}
                     onChange={(event) => setOperatingHintDontShow(event.target.checked)}
                   />
-                  今後このメッセージを表示しない
+                  <span className="operatingHintDontShowText">
+                    今後このメッセージを表示しない
+                  </span>
                 </label>
                 <button
                   type="button"
