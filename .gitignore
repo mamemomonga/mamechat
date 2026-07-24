@@ -27,4 +27,5 @@ ds-bundle/
 
 .agents/
 .claude/skills/deploy
-/deploy.sh
+
+/action.sh
