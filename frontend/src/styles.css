@@ -675,6 +675,12 @@ p {
 .compactChannelRoomHeader .operatingHintBubble {
   width: min(360px, 92vw);
 }
+/* 上の理由でボタン列基準になるため、三角は営業設定ボタンではなく列の右端（別のボタン）を
+   指してしまう。誤解を招くので、コンパクト幅では三角を出さない。 */
+.compactChannelRoomHeader .operatingHintBubble::before,
+.compactChannelRoomHeader .operatingHintBubble::after {
+  content: none;
+}
 
 /* 読み上げトグルはハードウェアのボタン/インジケータを模す。 */
 .ttsToggle {
