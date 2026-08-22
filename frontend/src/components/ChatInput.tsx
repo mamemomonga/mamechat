@@ -6,6 +6,8 @@ import {
   useRef,
   useState,
 } from "react";
+import { isVideoFile, VIDEO_MAX_BYTES } from "../lib/media";
+import VideoTrimEditor from "./VideoTrimEditor";
 
 type Props = {
   disabled: boolean;
@@ -47,6 +49,9 @@ export default function ChatInput({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  // 動画選択時にトリミングUIへ渡す元ファイル。null の間はエディタ非表示。
+  const [videoEditFile, setVideoEditFile] = useState<File | null>(null);
+  const [attachError, setAttachError] = useState("");
   const imagePreviewRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const body = controlledBody ?? uncontrolledBody;
@@ -87,6 +92,37 @@ export default function ChatInput({
 
   function clearImage() {
     setImage(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }
+
+  // 選択された添付ファイルの振り分け。動画はトリミングUIへ回し、それ以外は
+  // 従来どおり添付プレビューにする。動画は変換前の元ファイル上限（500MB）で弾く。
+  function chooseFile(file: File) {
+    setAttachError("");
+    if (isVideoFile(file)) {
+      if (file.size > VIDEO_MAX_BYTES) {
+        setAttachError("動画が大きすぎます（最大500MB）");
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+        return;
+      }
+      setVideoEditFile(file);
+      return;
+    }
+    setImage(file);
+  }
+
+  // トリミング・変換済みの動画を添付として確定する。
+  function handleVideoConfirm(clip: File) {
+    setVideoEditFile(null);
+    setImage(clip);
+  }
+
+  function handleVideoCancel() {
+    setVideoEditFile(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -142,12 +178,14 @@ export default function ChatInput({
 
   function handlePickImage(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] ?? null;
-    setImage(file);
+    if (file) {
+      chooseFile(file);
+    }
   }
 
-  // 添付可能なファイル（静止画・GIF/APNG・MP4動画）か判定する。
+  // 添付可能なファイル（静止画・GIF/APNG・動画）か判定する。
   function isAttachable(file: File): boolean {
-    return file.type.startsWith("image/") || file.type === "video/mp4";
+    return file.type.startsWith("image/") || isVideoFile(file);
   }
 
   // FileList から最初の添付可能ファイルを取り出す。
@@ -190,7 +228,7 @@ export default function ChatInput({
     if (file) {
       // ブラウザが画像を開いてしまうのを防ぎ、添付として扱う。
       event.preventDefault();
-      setImage(file);
+      chooseFile(file);
     }
     setDragActive(false);
   }
@@ -205,11 +243,11 @@ export default function ChatInput({
       return;
     }
     for (const item of Array.from(items)) {
-      if (item.kind === "file" && (item.type.startsWith("image/") || item.type === "video/mp4")) {
+      if (item.kind === "file" && (item.type.startsWith("image/") || item.type.startsWith("video/"))) {
         const file = item.getAsFile();
         if (file) {
           event.preventDefault();
-          setImage(file);
+          chooseFile(file);
           return;
         }
       }
@@ -224,6 +262,14 @@ export default function ChatInput({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
+      {videoEditFile ? (
+        <VideoTrimEditor
+          file={videoEditFile}
+          onConfirm={handleVideoConfirm}
+          onCancel={handleVideoCancel}
+        />
+      ) : null}
+      {attachError ? <div className="attachError">{attachError}</div> : null}
       {imageFile && imagePreview ? (
         <div className="imageAttachPreview">
           <button
@@ -284,7 +330,7 @@ export default function ChatInput({
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*,video/mp4"
+              accept="image/*,video/*"
               className="srOnly"
               onChange={handlePickImage}
             />

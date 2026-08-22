@@ -22,12 +22,23 @@ const (
 	formatMP4                 // MP4（音声なし・短時間のみ受理）→ MP4 へ正規化
 )
 
-// 変換後MP4の長辺上限と、x264エンコード品質。静止画の MAX_EDGE と揃える。
+// 変換後MP4の長辺上限と、x264エンコード品質。
+// GIF/APNG は小さなループ素材なので従来どおり 800。MP4 はブラウザ側で最大720pに
+// 変換済みのため、サーバの再エンコードで縮めないよう長辺 1280（=720p）まで許容する。
 const (
-	videoMaxEdge = 800
-	videoCRF     = "23"
-	videoPreset  = "veryfast"
+	videoMaxEdgeGIF = 800
+	videoMaxEdgeMP4 = 1280
+	videoCRF        = "23"
+	videoPreset     = "veryfast"
 )
+
+// maxEdgeFor は素材種別に応じた変換後の長辺上限を返す。
+func maxEdgeFor(format mediaFormat) int {
+	if format == formatMP4 {
+		return videoMaxEdgeMP4
+	}
+	return videoMaxEdgeGIF
+}
 
 // sniffFormat はマジックバイトから素材種別を判定する。クライアントの申告は信用しない。
 func sniffFormat(data []byte) mediaFormat {
@@ -140,14 +151,15 @@ func convertToMP4(ctx context.Context, format mediaFormat, data []byte, maxSecon
 		// APNG はデフォルトのPNGデコーダだと1枚絵になるため apng デマクサを明示する。
 		args = append(args, "-f", "apng")
 	}
+	maxEdge := maxEdgeFor(format)
 	args = append(args,
 		"-i", inPath,
 		"-an", // 音声は常に除去する。
-		// 長辺を videoMaxEdge 以内に収め（拡大はしない）、H.264(yuv420p)の制約のため
+		// 長辺を maxEdge 以内に収め（拡大はしない）、H.264(yuv420p)の制約のため
 		// 幅・高さを必ず偶数にする。長辺側は trunc(.../2)*2 で偶数に丸め、短辺側は -2 で偶数化する。
 		// 従来は長辺側を偶数化していなかったため、小さい素材で元寸の奇数辺がそのまま残り
 		// libx264 のエンコードに失敗して「対応していない形式」になっていた。
-		"-vf", fmt.Sprintf("scale='if(gt(iw,ih),trunc(min(%d,iw)/2)*2,-2)':'if(gt(iw,ih),-2,trunc(min(%d,ih)/2)*2)':flags=lanczos", videoMaxEdge, videoMaxEdge),
+		"-vf", fmt.Sprintf("scale='if(gt(iw,ih),trunc(min(%d,iw)/2)*2,-2)':'if(gt(iw,ih),-2,trunc(min(%d,ih)/2)*2)':flags=lanczos", maxEdge, maxEdge),
 		"-c:v", "libx264", "-preset", videoPreset, "-crf", videoCRF,
 		"-pix_fmt", "yuv420p",
 		"-movflags", "+faststart",

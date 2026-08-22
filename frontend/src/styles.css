@@ -3044,6 +3044,199 @@ body:has(.chatPage) {
   width: auto;
 }
 
+/* 動画トリミング・変換UI（ブラウザ内ffmpeg.wasm）。添付時に全面オーバーレイで開く。 */
+.videoTrimOverlay {
+  align-items: center;
+  background: rgb(9 13 18 / 90%);
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  left: 0;
+  padding: 1rem;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 70;
+}
+.videoTrimPanel {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 720px;
+  padding: 1rem;
+  width: 100%;
+}
+.videoTrimStage {
+  align-items: center;
+  background: #000;
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+.videoTrimVideo {
+  display: block;
+  max-height: min(56vh, 420px);
+  max-width: 100%;
+}
+/* 選択範囲内の再生位置カウンター（秒:フレーム）。範囲外は 00:00。 */
+.videoTrimCounter {
+  background: rgb(0 0 0 / 55%);
+  border-radius: 6px;
+  color: #fff;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+  left: 0.6rem;
+  padding: 0.15rem 0.5rem;
+  position: absolute;
+  top: 0.6rem;
+}
+.videoTrimTimeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.videoTrimTrack {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  cursor: pointer;
+  height: 34px;
+  position: relative;
+}
+/* 選択範囲（開始〜終了）のハイライト。 */
+.videoTrimSelection {
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: 4px;
+  bottom: 0;
+  position: absolute;
+  top: 0;
+}
+.videoTrimPlayhead {
+  background: #fff;
+  bottom: -2px;
+  pointer-events: none;
+  position: absolute;
+  top: -2px;
+  width: 2px;
+}
+/* 開始・終了マーカーのつまみ。 */
+.videoTrimHandle {
+  background: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 70%, #fff);
+  border-radius: 3px;
+  cursor: ew-resize;
+  height: 46px;
+  margin-left: -6px;
+  padding: 0;
+  position: absolute;
+  top: -6px;
+  touch-action: none;
+  width: 12px;
+}
+.videoTrimHandle:hover {
+  background: var(--accent-hover);
+}
+.videoTrimRangeInfo {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+.videoTrimError {
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  border-radius: 6px;
+  color: var(--danger-text);
+  font-size: 0.82rem;
+  padding: 0.5rem 0.7rem;
+}
+.videoTrimControls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+.videoTrimBtn {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  width: 44px;
+}
+.videoTrimBtn:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+}
+.videoTrimBtn:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+/* ○（決定）はアクセント、×（キャンセル）は危険色で意味づけする。 */
+.videoTrimConfirm {
+  background: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 75%, #fff);
+  color: #fff;
+}
+.videoTrimConfirm:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+.videoTrimCancel {
+  color: var(--danger-text);
+}
+.videoTrimCancel:hover:not(:disabled) {
+  border-color: var(--danger-border);
+}
+.videoTrimProgress {
+  align-items: center;
+  display: flex;
+  gap: 0.6rem;
+}
+.videoTrimProgressBar {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  flex: 1;
+  height: 10px;
+  overflow: hidden;
+}
+.videoTrimProgressFill {
+  background: var(--accent);
+  height: 100%;
+  transition: width 0.2s ease;
+}
+.videoTrimProgressText {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.attachError {
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  border-radius: 6px;
+  color: var(--danger-text);
+  font-size: 0.8rem;
+  margin-bottom: 0.4rem;
+  padding: 0.4rem 0.6rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  .videoTrimProgressFill {
+    transition: none;
+  }
+}
+
 .handheldChatPage .messageList {
   padding-bottom: 0.75rem;
 }

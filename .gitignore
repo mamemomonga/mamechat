@@ -12,6 +12,9 @@ frontend/dist/
 frontend/node_modules/
 frontend/tsconfig.tsbuildinfo
 
+# ffmpeg.wasm のコア（vite.config.ts が node_modules から複製・再生成。31MBのwasmは追跡しない）
+frontend/public/ffmpeg/
+
 # Playwright（.agents/tools）実行時にcwd次第で生成されることがある成果物
 test-results/
 

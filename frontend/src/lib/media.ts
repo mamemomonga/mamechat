@@ -3,7 +3,22 @@
 // それ以外の静止画は従来どおりクライアントでリサイズ・JPEG化する。
 
 // アニメーション素材として許容する最大バイト数（サーバの UPLOAD_MEDIA_MAX_BYTES と揃える）。
+// GIF/APNG と、ブラウザで変換済みのMP4出力に適用する（出力は720p・音声なし・短時間で小さい）。
 export const MEDIA_MAX_BYTES = 20 * 1024 * 1024;
+
+// 動画ファイル選択時に受け付ける最大バイト数（ブラウザ側で720p・音声なしへ変換する前の
+// 元ファイル上限）。変換後は MEDIA_MAX_BYTES 以内に収まる。
+export const VIDEO_MAX_BYTES = 500 * 1024 * 1024;
+
+// トリミングで切り出せる最大長さ（秒）。サーバの UPLOAD_VIDEO_MAX_SECONDS と揃える。
+export const VIDEO_MAX_SECONDS = 30;
+
+// isVideoFile はファイルが動画（トリミングUIの対象）かどうかを返す。
+export function isVideoFile(file: File): boolean {
+  const type = file.type.toLowerCase();
+  const name = file.name.toLowerCase();
+  return type.startsWith("video/") || name.endsWith(".mp4") || name.endsWith(".mov");
+}
 
 // isAnimatedMedia はファイルが GIF/APNG/MP4 のいずれかなら true を返す。
 // PNG は静止画とAPNGの区別がMIMEからつかないため、先頭バイトを調べる。
