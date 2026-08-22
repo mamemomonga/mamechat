@@ -3157,6 +3157,42 @@ body:has(.chatPage) {
   font-size: 0.82rem;
   padding: 0.5rem 0.7rem;
 }
+.videoTrimErrorMsg {
+  font-weight: 600;
+}
+.videoTrimErrorDetail {
+  margin-top: 0.4rem;
+}
+.videoTrimErrorDetail > summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  user-select: none;
+}
+.videoTrimErrorCopy {
+  background: transparent;
+  border: 1px solid var(--danger-border);
+  border-radius: 5px;
+  color: var(--danger-text);
+  cursor: pointer;
+  font-size: 0.72rem;
+  padding: 0.1rem 0.5rem;
+}
+.videoTrimErrorDetail > pre {
+  background: rgb(0 0 0 / 35%);
+  border-radius: 5px;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  line-height: 1.4;
+  margin: 0.4rem 0 0;
+  max-height: 180px;
+  overflow: auto;
+  padding: 0.5rem 0.6rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
 .videoTrimControls {
   display: flex;
   flex-wrap: wrap;

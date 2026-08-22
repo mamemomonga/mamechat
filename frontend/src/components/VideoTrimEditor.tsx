@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { VIDEO_MAX_SECONDS } from "../lib/media";
-import { processVideoClip } from "../lib/videoProcess";
+import { processVideoClip, VideoProcessError } from "../lib/videoProcess";
 
 type Props = {
   // 元動画ファイル（トリミング前）。
@@ -47,6 +47,7 @@ export default function VideoTrimEditor({ file, onCancel, onConfirm }: Props) {
   const [processing, setProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState("");
+  const [errorDetail, setErrorDetail] = useState("");
   const [dragging, setDragging] = useState<null | "start" | "end">(null);
 
   // 選択範囲内かどうか。範囲外ならカウンターは 00:00。
@@ -216,15 +217,31 @@ export default function VideoTrimEditor({ file, onCancel, onConfirm }: Props) {
       return;
     }
     setError("");
+    setErrorDetail("");
     setProcessing(true);
     setProgress(0);
     try {
       const clip = await processVideoClip(file, start, end, (r) => setProgress(r));
       onConfirm(clip);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "動画の処理に失敗しました");
+      if (err instanceof VideoProcessError) {
+        setError(err.message);
+        setErrorDetail(err.detail);
+      } else if (err instanceof Error) {
+        setError(err.message || "動画の処理に失敗しました");
+        setErrorDetail(err.stack ?? "");
+      } else {
+        setError("動画の処理に失敗しました");
+        setErrorDetail(String(err));
+      }
       setProcessing(false);
     }
+  }
+
+  // 詳細（ffmpegログ等）をクリップボードへコピーして報告しやすくする。
+  function copyDetail() {
+    const text = `${error}\n\n${errorDetail}`.trim();
+    void navigator.clipboard?.writeText(text).catch(() => {});
   }
 
   const pct = (t: number) => (duration > 0 ? (t / duration) * 100 : 0);
@@ -284,7 +301,29 @@ export default function VideoTrimEditor({ file, onCancel, onConfirm }: Props) {
           </div>
         </div>
 
-        {error ? <div className="videoTrimError">{error}</div> : null}
+        {error ? (
+          <div className="videoTrimError">
+            <div className="videoTrimErrorMsg">{error}</div>
+            {errorDetail ? (
+              <details className="videoTrimErrorDetail">
+                <summary>
+                  エラーの詳細
+                  <button
+                    type="button"
+                    className="videoTrimErrorCopy"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      copyDetail();
+                    }}
+                  >
+                    コピー
+                  </button>
+                </summary>
+                <pre>{errorDetail}</pre>
+              </details>
+            ) : null}
+          </div>
+        ) : null}
 
         {processing ? (
           <div className="videoTrimProgress">
