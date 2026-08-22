@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { isVideoFile, VIDEO_MAX_BYTES } from "../lib/media";
+import { isVideoFile, VIDEO_MAX_BYTES, VIDEO_MAX_LABEL } from "../lib/media";
 import VideoTrimEditor from "./VideoTrimEditor";
 
 type Props = {
@@ -103,7 +103,7 @@ export default function ChatInput({
     setAttachError("");
     if (isVideoFile(file)) {
       if (file.size > VIDEO_MAX_BYTES) {
-        setAttachError("動画が大きすぎます（最大500MB）");
+        setAttachError(`動画が大きすぎます（最大${VIDEO_MAX_LABEL}）`);
         if (fileInputRef.current) {
           fileInputRef.current.value = "";
         }

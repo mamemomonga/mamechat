@@ -8,7 +8,14 @@ export const MEDIA_MAX_BYTES = 20 * 1024 * 1024;
 
 // 動画ファイル選択時に受け付ける最大バイト数（ブラウザ側で720p・音声なしへ変換する前の
 // 元ファイル上限）。変換後は MEDIA_MAX_BYTES 以内に収まる。
-export const VIDEO_MAX_BYTES = 500 * 1024 * 1024;
+//
+// 入力は WORKERFS でマウントし wasm ヒープへ丸ごと読み込まないため、必要メモリは入力サイズ
+// ではなく解像度と切り出し尺（最大30秒）で決まる。よって数GB級でも編集できる。上限は
+// フリーズ・暴走を避けるための安全弁で、実用上ほぼ全ての端末動画（4K長尺含む）を許容する 8GiB。
+export const VIDEO_MAX_BYTES = 8 * 1024 * 1024 * 1024;
+
+// 上限の人間向け表記（エラーメッセージ用）。VIDEO_MAX_BYTES と揃える。
+export const VIDEO_MAX_LABEL = "8GB";
 
 // トリミングで切り出せる最大長さ（秒）。サーバの UPLOAD_VIDEO_MAX_SECONDS と揃える。
 export const VIDEO_MAX_SECONDS = 30;
