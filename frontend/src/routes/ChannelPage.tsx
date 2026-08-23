@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from "react-router";
 
 import ChatInput from "../components/ChatInput";
 import ChatMessageList from "../components/ChatMessageList";
+import VideoTrimEditor from "../components/VideoTrimEditor";
 import ChannelPresence from "../components/ChannelPresence";
 import UserAvatar from "../components/UserAvatar";
 import UserProfilePopup, { type PopupUser } from "../components/UserProfilePopup";
@@ -27,12 +28,21 @@ import { getPushConfig, isPushEnvironmentSupported } from "../lib/pushNotify";
 import { isOperatingHintDismissed, setOperatingHintDismissed } from "../lib/operatingHint";
 import { resizeImageToJpeg } from "../lib/image";
 import { isAnimatedMedia, MEDIA_MAX_BYTES } from "../lib/media";
+import { processVideoClip, VideoProcessError } from "../lib/videoProcess";
 import { labelChannelGrace, labelChannelRetention } from "../lib/suspendOptions";
 import { handleServerVersion } from "../lib/version";
 import { connectChannelSocket, type WebSocketStatus } from "../lib/websocket";
 import type { Channel, PresenceMember, ServerToClientMessage, TTSPart, User } from "../types/chat";
 
 type SocketHandle = ReturnType<typeof connectChannelSocket>;
+
+// 動画のバックグラウンド変換ジョブの状態。
+// processing=変換中（progress 0..1）, done=完了（投稿待ち。clipは変換後MP4, thumbUrlはプレビュー用）,
+// error=失敗（要約message）。
+type VideoJob =
+  | { status: "processing"; progress: number }
+  | { status: "done"; clip: File; thumbUrl: string }
+  | { status: "error"; message: string; detail: string };
 type PendingTTSParts = {
   partCount?: number;
   nextIndex: number;
@@ -283,6 +293,16 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
   const [ttsDialogOpen, setTtsDialogOpen] = useState(false);
   // 現在読み上げ中の投稿ID。該当投稿のアバターをぴょんぴょん跳ねさせる。
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
+  // 動画トリミングエディタで開いている元ファイル（null=閉）。
+  const [videoEditFile, setVideoEditFile] = useState<File | null>(null);
+  // 動画のバックグラウンド変換ジョブ。決定(○)でエディタを閉じ、変換はここで進行させる。
+  // 上部バーに進捗/完了/失敗を出し、完了なら[投稿][キャンセル]を表示する。
+  const [videoJob, setVideoJob] = useState<VideoJob | null>(null);
+  // 完了後の[投稿]で開くサムネ付き投稿ダイアログ。
+  const [videoPostOpen, setVideoPostOpen] = useState(false);
+  const [videoPostCaption, setVideoPostCaption] = useState("");
+  // 進行中ジョブの識別。キャンセル/切替時に古い結果を無視するために使う。
+  const videoJobTokenRef = useRef(0);
   // 営業時間設定ダイアログ・営業延長ダイアログの開閉。
   const [operatingDialogOpen, setOperatingDialogOpen] = useState(false);
   // 「準備中なので営業中にしよう」の噴きだし。永続非表示はブラウザ保存、
@@ -345,6 +365,8 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
   // スマホ、または低いカラム/ウィンドウでは、インライン投稿欄を隠して
   // 「書き込み」ボタン→フォーム（オーバーレイ）方式にする。
   const useComposerButton = isHandheldOS || compactHeight;
+  // 動画のトリミング中・変換中・投稿待ちは、画像/動画の添付を禁止する（テキストは可）。
+  const attachBusy = videoJob !== null || videoEditFile !== null;
   // 営業中（終了予定時刻あり＝カウントダウン中）。時間制限なしのときはカウントダウンしない。
   const operating = !suspended && !operatingUnlimited && !!suspendDeadline;
   // 「CH設定/CH情報」ボタンとダイアログのタイトル。オーナーは設定、それ以外は情報。
@@ -941,6 +963,88 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
       setPendingImageUploads((n) => Math.max(0, n - 1));
     }
   }
+
+  // 動画が選ばれたらトリミングエディタを開く。処理中(ジョブあり)は新たに開かない。
+  function handleVideoSelected(file: File) {
+    if (videoJob || videoEditFile) {
+      return;
+    }
+    setVideoEditFile(file);
+  }
+
+  // ○決定：エディタを閉じ、選択範囲の変換をバックグラウンドで開始する。
+  // 変換中もチャット書き込み・読み上げは使え、画像/動画の添付だけ禁止する。
+  function startVideoProcessing(file: File, startSec: number, endSec: number) {
+    setVideoEditFile(null);
+    const token = ++videoJobTokenRef.current;
+    setVideoJob({ status: "processing", progress: 0 });
+    void (async () => {
+      try {
+        const clip = await processVideoClip(file, startSec, endSec, (ratio) => {
+          if (videoJobTokenRef.current !== token) {
+            return;
+          }
+          setVideoJob((job) =>
+            job && job.status === "processing" ? { status: "processing", progress: ratio } : job,
+          );
+        });
+        if (videoJobTokenRef.current !== token) {
+          return;
+        }
+        setVideoJob({ status: "done", clip, thumbUrl: URL.createObjectURL(clip) });
+      } catch (err) {
+        if (videoJobTokenRef.current !== token) {
+          return;
+        }
+        const message =
+          err instanceof VideoProcessError || err instanceof Error
+            ? err.message || "動画の処理に失敗しました"
+            : "動画の処理に失敗しました";
+        const detail =
+          err instanceof VideoProcessError
+            ? err.detail
+            : err instanceof Error
+              ? (err.stack ?? "")
+              : String(err);
+        setVideoJob({ status: "error", message, detail });
+      }
+    })();
+  }
+
+  // 完了バーの[投稿] → サムネ付きの投稿ダイアログを開く。
+  function openVideoPost() {
+    if (videoJob?.status === "done") {
+      setVideoPostCaption("");
+      setVideoPostOpen(true);
+    }
+  }
+
+  // 投稿ダイアログの送信 → 通常の画像/動画アップロードで投稿し、ジョブを片付ける。
+  function submitVideoPost() {
+    if (videoJob?.status !== "done" || status !== "open") {
+      return;
+    }
+    void sendImage(videoJob.clip, videoPostCaption.trim());
+    discardVideoJob();
+  }
+
+  // ジョブを破棄する（[キャンセル]/失敗の[閉じる]/投稿後）。進行中なら結果を無視する。
+  // thumbUrl の解放は videoJob を見る useEffect のクリーンアップに任せる。
+  function discardVideoJob() {
+    videoJobTokenRef.current++;
+    setVideoPostOpen(false);
+    setVideoPostCaption("");
+    setVideoJob(null);
+  }
+
+  // 完了ジョブのプレビューURLはジョブが変わる/アンマウント時に解放する。
+  useEffect(() => {
+    if (videoJob?.status === "done") {
+      const url = videoJob.thumbUrl;
+      return () => URL.revokeObjectURL(url);
+    }
+    return undefined;
+  }, [videoJob]);
 
   function openMobileComposer() {
     flushSync(() => {
@@ -1547,6 +1651,51 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
         ref={chatPageRef}
         className={`chatPage${isHandheldOS ? " handheldChatPage" : ""}`}
       >
+        {/* 動画のバックグラウンド変換バー（チャット上部）。変換中は進捗、完了で[投稿][キャンセル]。 */}
+        {videoJob ? (
+          <div className="videoJobBar" role="status" aria-live="polite">
+            {videoJob.status === "processing" ? (
+              <>
+                <span className="videoJobBarLabel">
+                  動画を処理中… {Math.round(videoJob.progress * 100)}%
+                </span>
+                <div className="videoJobProgress" aria-hidden="true">
+                  <div
+                    className="videoJobProgressFill"
+                    style={{ width: `${Math.round(videoJob.progress * 100)}%` }}
+                  />
+                </div>
+              </>
+            ) : videoJob.status === "done" ? (
+              <>
+                <span className="videoJobBarLabel">動画処理が完了しました</span>
+                <div className="videoJobActions">
+                  <button type="button" className="videoJobPost" onClick={openVideoPost}>
+                    投稿
+                  </button>
+                  <button type="button" className="videoJobCancel" onClick={discardVideoJob}>
+                    キャンセル
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <span className="videoJobBarLabel videoJobBarError">{videoJob.message}</span>
+                <div className="videoJobActions">
+                  <button type="button" className="videoJobCancel" onClick={discardVideoJob}>
+                    閉じる
+                  </button>
+                </div>
+                {videoJob.detail ? (
+                  <details className="videoJobErrorDetail">
+                    <summary>エラーの詳細</summary>
+                    <pre>{videoJob.detail}</pre>
+                  </details>
+                ) : null}
+              </>
+            )}
+          </div>
+        ) : null}
         {suspended ? (
           <p className="formNotice">このチャンネルは準備中です。</p>
         ) : null}
@@ -1611,6 +1760,8 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
             onSend={send}
             imageUploadEnabled={channel?.imageUploadEnabled ?? false}
             onSendImage={sendImage}
+            onVideoSelected={handleVideoSelected}
+            attachBlocked={attachBusy}
           />
         ) : null}
         {useComposerButton && mobileComposerOpen ? (
@@ -1636,6 +1787,8 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
                 onSend={send}
                 imageUploadEnabled={channel?.imageUploadEnabled ?? false}
                 onSendImage={sendImage}
+                onVideoSelected={handleVideoSelected}
+                attachBlocked={attachBusy}
                 textareaRef={mobileTextareaRef}
               />
             </div>
@@ -1826,6 +1979,63 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
           </div>
         ) : null}
       </section>
+      {/* 動画トリミングエディタ（全面オーバーレイ）。○で閉じてバックグラウンド変換を開始。 */}
+      {videoEditFile ? (
+        <VideoTrimEditor
+          file={videoEditFile}
+          onConfirm={(startSec, endSec) => startVideoProcessing(videoEditFile, startSec, endSec)}
+          onCancel={() => setVideoEditFile(null)}
+        />
+      ) : null}
+      {/* 変換完了後の[投稿] → サムネ付き投稿ダイアログ。 */}
+      {videoPostOpen && videoJob?.status === "done" ? (
+        <div
+          className="videoPostOverlay"
+          role="presentation"
+          onClick={() => setVideoPostOpen(false)}
+        >
+          <div
+            className="videoPostDialog"
+            role="dialog"
+            aria-modal="true"
+            aria-label="動画を投稿"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <video
+              className="videoPostThumb"
+              src={videoJob.thumbUrl}
+              muted
+              loop
+              autoPlay
+              playsInline
+            />
+            <textarea
+              className="videoPostCaption"
+              placeholder="メッセージ（任意）"
+              value={videoPostCaption}
+              maxLength={messageMaxLength}
+              onChange={(event) => setVideoPostCaption(event.target.value)}
+            />
+            <div className="videoPostActions">
+              <button
+                type="button"
+                className="videoPostSend"
+                onClick={submitVideoPost}
+                disabled={status !== "open"}
+              >
+                投稿
+              </button>
+              <button
+                type="button"
+                className="videoPostBack"
+                onClick={() => setVideoPostOpen(false)}
+              >
+                戻る
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {detailDialogOpen ? (
         <div
           className="channelInfoDialogOverlay"

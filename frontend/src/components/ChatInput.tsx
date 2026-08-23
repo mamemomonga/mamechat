@@ -7,7 +7,6 @@ import {
   useState,
 } from "react";
 import { isVideoFile, VIDEO_MAX_BYTES, VIDEO_MAX_LABEL } from "../lib/media";
-import VideoTrimEditor from "./VideoTrimEditor";
 
 type Props = {
   disabled: boolean;
@@ -18,6 +17,10 @@ type Props = {
   onSend: (body: string) => void;
   imageUploadEnabled?: boolean;
   onSendImage?: (file: File, caption: string) => void;
+  // 動画が選ばれたら親へ渡す（親がトリミングUIを開き、変換をバックグラウンドで行う）。
+  onVideoSelected?: (file: File) => void;
+  // 動画処理中などで添付を一時的に禁止する（テキスト投稿は可能）。
+  attachBlocked?: boolean;
   textareaRef?: Ref<HTMLTextAreaElement>;
 };
 
@@ -41,6 +44,8 @@ export default function ChatInput({
   onSend,
   imageUploadEnabled = false,
   onSendImage,
+  onVideoSelected,
+  attachBlocked = false,
   textareaRef,
 }: Props) {
   const [uncontrolledBody, setUncontrolledBody] = useState("");
@@ -49,8 +54,6 @@ export default function ChatInput({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [dragActive, setDragActive] = useState(false);
-  // 動画選択時にトリミングUIへ渡す元ファイル。null の間はエディタ非表示。
-  const [videoEditFile, setVideoEditFile] = useState<File | null>(null);
   const [attachError, setAttachError] = useState("");
   const imagePreviewRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -97,32 +100,29 @@ export default function ChatInput({
     }
   }
 
-  // 選択された添付ファイルの振り分け。動画はトリミングUIへ回し、それ以外は
-  // 従来どおり添付プレビューにする。動画は変換前の元ファイル上限（500MB）で弾く。
+  // 選択された添付ファイルの振り分け。動画は親（トリミングUI＋バックグラウンド変換）へ渡し、
+  // それ以外は従来どおり添付プレビューにする。動画は変換前の元ファイル上限で弾く。
   function chooseFile(file: File) {
     setAttachError("");
+    // 動画処理中などで添付が禁止されているときは何もしない。
+    if (attachBlocked) {
+      return;
+    }
     if (isVideoFile(file)) {
       if (file.size > VIDEO_MAX_BYTES) {
         setAttachError(`動画が大きすぎます（最大${VIDEO_MAX_LABEL}）`);
-        if (fileInputRef.current) {
-          fileInputRef.current.value = "";
-        }
+        clearFileInput();
         return;
       }
-      setVideoEditFile(file);
+      onVideoSelected?.(file);
+      // 同じ動画を再選択してもトリガーできるよう入力をクリアする。
+      clearFileInput();
       return;
     }
     setImage(file);
   }
 
-  // トリミング・変換済みの動画を添付として確定する。
-  function handleVideoConfirm(clip: File) {
-    setVideoEditFile(null);
-    setImage(clip);
-  }
-
-  function handleVideoCancel() {
-    setVideoEditFile(null);
+  function clearFileInput() {
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -202,7 +202,7 @@ export default function ChatInput({
   }
 
   function handleDragOver(event: React.DragEvent) {
-    if (!canAttachImage || disabled) {
+    if (!canAttachImage || disabled || attachBlocked) {
       return;
     }
     // ファイルのドラッグ中だけドロップを受け付ける（テキスト選択のドラッグ等は無視）。
@@ -221,7 +221,7 @@ export default function ChatInput({
   }
 
   function handleDrop(event: React.DragEvent) {
-    if (!canAttachImage || disabled) {
+    if (!canAttachImage || disabled || attachBlocked) {
       return;
     }
     const file = firstImageFile(event.dataTransfer.files);
@@ -235,7 +235,7 @@ export default function ChatInput({
 
   // 画像をペーストしたらファイル選択と同じく添付する（リサイズ・JPEG化は送信時に行う）。
   function handlePaste(event: React.ClipboardEvent<HTMLTextAreaElement>) {
-    if (!canAttachImage || disabled) {
+    if (!canAttachImage || disabled || attachBlocked) {
       return;
     }
     const items = event.clipboardData?.items;
@@ -262,13 +262,6 @@ export default function ChatInput({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      {videoEditFile ? (
-        <VideoTrimEditor
-          file={videoEditFile}
-          onConfirm={handleVideoConfirm}
-          onCancel={handleVideoCancel}
-        />
-      ) : null}
       {attachError ? <div className="attachError">{attachError}</div> : null}
       {imageFile && imagePreview ? (
         <div className="imageAttachPreview">
@@ -338,7 +331,8 @@ export default function ChatInput({
               type="button"
               className="imageAttachButton"
               onClick={() => fileInputRef.current?.click()}
-              disabled={disabled}
+              disabled={disabled || attachBlocked}
+              title={attachBlocked ? "動画の処理中は画像・動画を添付できません" : undefined}
             >
               画像
             </button>

@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { VIDEO_MAX_SECONDS } from "../lib/media";
-import { processVideoClip, VideoProcessError } from "../lib/videoProcess";
 
 type Props = {
   // 元動画ファイル（トリミング前）。
   file: File;
   // ×（キャンセル）押下。
   onCancel: () => void;
-  // ○（決定）→ ブラウザ内でトリミング・変換が終わった動画(File)を渡す。
-  onConfirm: (clip: File) => void;
+  // ○（決定）→ 選択した切り出し範囲[start,end]（秒）を渡す。実際の変換は親が
+  //  バックグラウンドで行う（エディタはここで閉じる）。
+  onConfirm: (startSec: number, endSec: number) => void;
 };
 
 // requestVideoFrameCallback は型定義に無い環境があるため最小限で宣言する。
@@ -44,10 +44,6 @@ export default function VideoTrimEditor({ file, onCancel, onConfirm }: Props) {
   const [start, setStart] = useState(0);
   const [end, setEnd] = useState(0);
   const [fpsLabel, setFpsLabel] = useState(30);
-  const [processing, setProcessing] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [error, setError] = useState("");
-  const [errorDetail, setErrorDetail] = useState("");
   const [dragging, setDragging] = useState<null | "start" | "end">(null);
 
   // 選択範囲内かどうか。範囲外ならカウンターは 00:00。
@@ -212,36 +208,12 @@ export default function VideoTrimEditor({ file, onCancel, onConfirm }: Props) {
     };
   }, [dragging, duration, start, end]);
 
-  async function confirm() {
-    if (processing) {
+  // ○決定：選択範囲を親へ渡す。変換はバックグラウンドで親が行い、ここは即座に閉じる。
+  function confirm() {
+    if (end <= start) {
       return;
     }
-    setError("");
-    setErrorDetail("");
-    setProcessing(true);
-    setProgress(0);
-    try {
-      const clip = await processVideoClip(file, start, end, (r) => setProgress(r));
-      onConfirm(clip);
-    } catch (err) {
-      if (err instanceof VideoProcessError) {
-        setError(err.message);
-        setErrorDetail(err.detail);
-      } else if (err instanceof Error) {
-        setError(err.message || "動画の処理に失敗しました");
-        setErrorDetail(err.stack ?? "");
-      } else {
-        setError("動画の処理に失敗しました");
-        setErrorDetail(String(err));
-      }
-      setProcessing(false);
-    }
-  }
-
-  // 詳細（ffmpegログ等）をクリップボードへコピーして報告しやすくする。
-  function copyDetail() {
-    const text = `${error}\n\n${errorDetail}`.trim();
-    void navigator.clipboard?.writeText(text).catch(() => {});
+    onConfirm(start, end);
   }
 
   const pct = (t: number) => (duration > 0 ? (t / duration) * 100 : 0);
@@ -301,75 +273,42 @@ export default function VideoTrimEditor({ file, onCancel, onConfirm }: Props) {
           </div>
         </div>
 
-        {error ? (
-          <div className="videoTrimError">
-            <div className="videoTrimErrorMsg">{error}</div>
-            {errorDetail ? (
-              <details className="videoTrimErrorDetail">
-                <summary>
-                  エラーの詳細
-                  <button
-                    type="button"
-                    className="videoTrimErrorCopy"
-                    onClick={(event) => {
-                      event.preventDefault();
-                      copyDetail();
-                    }}
-                  >
-                    コピー
-                  </button>
-                </summary>
-                <pre>{errorDetail}</pre>
-              </details>
-            ) : null}
-          </div>
-        ) : null}
-
-        {processing ? (
-          <div className="videoTrimProgress">
-            <div className="videoTrimProgressBar">
-              <div className="videoTrimProgressFill" style={{ width: `${Math.round(progress * 100)}%` }} />
-            </div>
-            <span className="videoTrimProgressText">変換中… {Math.round(progress * 100)}%</span>
-          </div>
-        ) : (
-          <div className="videoTrimControls">
-            <button type="button" className="videoTrimBtn" onClick={play} disabled={playing} aria-label="再生">
-              <IconPlay />
-            </button>
-            <button type="button" className="videoTrimBtn" onClick={pause} disabled={!playing} aria-label="一時停止">
-              <IconPause />
-            </button>
-            <button type="button" className="videoTrimBtn" onClick={() => seekBy(-10)} aria-label="10秒戻す">
-              <IconBack10 />
-            </button>
-            <button type="button" className="videoTrimBtn" onClick={() => seekBy(10)} aria-label="10秒進める">
-              <IconFwd10 />
-            </button>
-            <button type="button" className="videoTrimBtn" onClick={setStartMarker} aria-label="開始マーカーを設定">
-              <IconMarkStart />
-            </button>
-            <button type="button" className="videoTrimBtn" onClick={setEndMarker} aria-label="終了マーカーを設定">
-              <IconMarkEnd />
-            </button>
-            <button
-              type="button"
-              className="videoTrimBtn videoTrimConfirm"
-              onClick={confirm}
-              aria-label="決定（変換してアップロード）"
-            >
-              <IconConfirm />
-            </button>
-            <button
-              type="button"
-              className="videoTrimBtn videoTrimCancel"
-              onClick={onCancel}
-              aria-label="キャンセル"
-            >
-              <IconCancel />
-            </button>
-          </div>
-        )}
+        <div className="videoTrimControls">
+          <button type="button" className="videoTrimBtn" onClick={play} disabled={playing} aria-label="再生">
+            <IconPlay />
+          </button>
+          <button type="button" className="videoTrimBtn" onClick={pause} disabled={!playing} aria-label="一時停止">
+            <IconPause />
+          </button>
+          <button type="button" className="videoTrimBtn" onClick={() => seekBy(-10)} aria-label="10秒戻す">
+            <IconBack10 />
+          </button>
+          <button type="button" className="videoTrimBtn" onClick={() => seekBy(10)} aria-label="10秒進める">
+            <IconFwd10 />
+          </button>
+          <button type="button" className="videoTrimBtn" onClick={setStartMarker} aria-label="開始マーカーを設定">
+            <IconMarkStart />
+          </button>
+          <button type="button" className="videoTrimBtn" onClick={setEndMarker} aria-label="終了マーカーを設定">
+            <IconMarkEnd />
+          </button>
+          <button
+            type="button"
+            className="videoTrimBtn videoTrimConfirm"
+            onClick={confirm}
+            aria-label="決定（変換してアップロード）"
+          >
+            <IconConfirm />
+          </button>
+          <button
+            type="button"
+            className="videoTrimBtn videoTrimCancel"
+            onClick={onCancel}
+            aria-label="キャンセル"
+          >
+            <IconCancel />
+          </button>
+        </div>
       </div>
     </div>
   );

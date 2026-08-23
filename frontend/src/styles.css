@@ -3268,9 +3268,170 @@ body:has(.chatPage) {
   padding: 0.4rem 0.6rem;
 }
 @media (prefers-reduced-motion: reduce) {
-  .videoTrimProgressFill {
+  .videoTrimProgressFill,
+  .videoJobProgressFill {
     transition: none;
   }
+}
+
+/* 動画のバックグラウンド変換バー（チャット上部）。変換中は進捗、完了/失敗で操作ボタン。 */
+.videoJobBar {
+  align-items: center;
+  background: var(--surface-raised);
+  border-bottom: 1px solid var(--border-strong);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 0.75rem;
+  padding: 0.5rem 0.85rem;
+}
+.videoJobBarLabel {
+  color: var(--text);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.videoJobBarError {
+  color: var(--danger-text);
+  white-space: normal;
+}
+.videoJobProgress {
+  background: var(--surface);
+  border-radius: 999px;
+  flex: 1;
+  height: 8px;
+  min-width: 120px;
+  overflow: hidden;
+}
+.videoJobProgressFill {
+  background: var(--accent);
+  height: 100%;
+  transition: width 0.2s ease;
+}
+.videoJobActions {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+/* エラー詳細（ffmpegログ）はバー内で全幅に折り返して表示する。 */
+.videoJobErrorDetail {
+  flex-basis: 100%;
+  font-size: 0.76rem;
+}
+.videoJobErrorDetail > summary {
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+.videoJobErrorDetail > pre {
+  background: rgb(0 0 0 / 30%);
+  border-radius: 5px;
+  color: var(--text-muted);
+  margin: 0.35rem 0 0;
+  max-height: 140px;
+  overflow: auto;
+  padding: 0.5rem 0.6rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.videoJobPost,
+.videoJobCancel {
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  padding: 0.32rem 0.95rem;
+}
+.videoJobPost {
+  background: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 75%, #fff);
+  color: #fff;
+}
+.videoJobPost:hover {
+  background: var(--accent-hover);
+}
+.videoJobCancel {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+}
+.videoJobCancel:hover {
+  background: var(--surface-hover);
+}
+
+/* 動画投稿ダイアログ（完了後の[投稿]で開く。サムネ＋キャプション＋投稿）。 */
+.videoPostOverlay {
+  align-items: center;
+  background: rgb(9 13 18 / 80%);
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  left: 0;
+  padding: 1rem;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 65;
+}
+.videoPostDialog {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1rem;
+  width: min(440px, 92vw);
+}
+.videoPostThumb {
+  background: #000;
+  border-radius: 8px;
+  display: block;
+  max-height: 46vh;
+  object-fit: contain;
+  width: 100%;
+}
+.videoPostCaption {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  color: var(--text);
+  font: inherit;
+  min-height: 3.2rem;
+  padding: 0.5rem 0.6rem;
+  resize: vertical;
+}
+.videoPostActions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+.videoPostSend,
+.videoPostBack {
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0.4rem 1.1rem;
+}
+.videoPostSend {
+  background: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 75%, #fff);
+  color: #fff;
+}
+.videoPostSend:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+.videoPostSend:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+.videoPostBack {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+}
+.videoPostBack:hover {
+  background: var(--surface-hover);
 }
 
 .handheldChatPage .messageList {
