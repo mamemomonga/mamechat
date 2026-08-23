@@ -27,7 +27,13 @@ import {
 import { getPushConfig, isPushEnvironmentSupported } from "../lib/pushNotify";
 import { isOperatingHintDismissed, setOperatingHintDismissed } from "../lib/operatingHint";
 import { resizeImageToJpeg } from "../lib/image";
-import { isAnimatedMedia, MEDIA_MAX_BYTES } from "../lib/media";
+import {
+  isAnimatedMedia,
+  isVideoFile,
+  MEDIA_MAX_BYTES,
+  VIDEO_MAX_BYTES,
+  VIDEO_MAX_LABEL,
+} from "../lib/media";
 import { cancelVideoProcessing, processVideoClip, VideoProcessError } from "../lib/videoProcess";
 import { labelChannelGrace, labelChannelRetention } from "../lib/suspendOptions";
 import { handleServerVersion } from "../lib/version";
@@ -298,9 +304,15 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
   // 動画のバックグラウンド変換ジョブ。決定(○)でエディタを閉じ、変換はここで進行させる。
   // 上部バーに進捗/完了/失敗を出し、完了なら[投稿][キャンセル]を表示する。
   const [videoJob, setVideoJob] = useState<VideoJob | null>(null);
-  // 完了後の[投稿]で開くサムネ付き投稿ダイアログ。
-  const [videoPostOpen, setVideoPostOpen] = useState(false);
-  const [videoPostCaption, setVideoPostCaption] = useState("");
+  // 画像/動画の投稿ダイアログ（大きくプレビューしながらキャプションを書いて投稿）。
+  // image=画像選択で直接開く（urlは自前で生成/解放）。video=変換完了後の[投稿]で開く
+  // （urlはジョブのthumbUrlを流用）。
+  const [postDialog, setPostDialog] = useState<{
+    kind: "image" | "video";
+    file: File;
+    url: string;
+  } | null>(null);
+  const [postCaption, setPostCaption] = useState("");
   // 進行中ジョブの識別。キャンセル/切替時に古い結果を無視するために使う。
   const videoJobTokenRef = useRef(0);
   // 営業時間設定ダイアログ・営業延長ダイアログの開閉。
@@ -347,6 +359,8 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
   // 初回ロード時に一度だけ最下部へスクロールしたか。
   const initialScrolledRef = useRef(false);
   const mobileTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  // コンパクト時の「画像」FAB用の隠しファイル入力。
+  const attachFileInputRef = useRef<HTMLInputElement | null>(null);
   // 高さ計測の起点（chatPage）。埋め込み時は親カラム、単独時はビューポートで判定する。
   const chatPageRef = useRef<HTMLElement | null>(null);
   const ttsEnabledRef = useRef(ttsEnabled);
@@ -365,8 +379,10 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
   // スマホ、または低いカラム/ウィンドウでは、インライン投稿欄を隠して
   // 「書き込み」ボタン→フォーム（オーバーレイ）方式にする。
   const useComposerButton = isHandheldOS || compactHeight;
-  // 動画のトリミング中・変換中・投稿待ちは、画像/動画の添付を禁止する（テキストは可）。
-  const attachBusy = videoJob !== null || videoEditFile !== null;
+  // 動画のトリミング中・変換中・投稿待ち・投稿ダイアログ表示中は、新たな添付を禁止する
+  //（テキスト投稿は可）。
+  const attachBusy = videoJob !== null || videoEditFile !== null || postDialog !== null;
+  const canAttach = (channel?.imageUploadEnabled ?? false) && !attachBusy;
   // 営業中（終了予定時刻あり＝カウントダウン中）。時間制限なしのときはカウントダウンしない。
   const operating = !suspended && !operatingUnlimited && !!suspendDeadline;
   // 「CH設定/CH情報」ボタンとダイアログのタイトル。オーナーは設定、それ以外は情報。
@@ -1013,29 +1029,69 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
     })();
   }
 
-  // 完了バーの[投稿] → サムネ付きの投稿ダイアログを開く。
-  function openVideoPost() {
-    if (videoJob?.status === "done") {
-      setVideoPostCaption("");
-      setVideoPostOpen(true);
+  // 添付ファイルの振り分け：動画→編集画面、画像→大きくプレビューする投稿ダイアログ。
+  function handleAttachFile(file: File) {
+    if (videoJob || videoEditFile || postDialog) {
+      return;
+    }
+    setImageUploadError("");
+    if (isVideoFile(file)) {
+      if (file.size > VIDEO_MAX_BYTES) {
+        setImageUploadError(`動画が大きすぎます（最大${VIDEO_MAX_LABEL}）`);
+        return;
+      }
+      handleVideoSelected(file);
+      return;
+    }
+    if (file.type.startsWith("image/")) {
+      openImagePost(file);
     }
   }
 
-  // 投稿ダイアログの送信 → 通常の画像/動画アップロードで投稿し、ジョブを片付ける。
-  function submitVideoPost() {
-    if (videoJob?.status !== "done" || status !== "open") {
+  // 画像選択 → 大きくプレビューする投稿ダイアログを開く（動画の投稿フォームと同デザイン）。
+  function openImagePost(file: File) {
+    closeMobileComposer();
+    setPostCaption("");
+    setPostDialog({ kind: "image", file, url: URL.createObjectURL(file) });
+  }
+
+  // 完了バーの[投稿] → サムネ付きの投稿ダイアログ（動画）を開く。
+  function openVideoPost() {
+    if (videoJob?.status === "done") {
+      setPostCaption("");
+      setPostDialog({ kind: "video", file: videoJob.clip, url: videoJob.thumbUrl });
+    }
+  }
+
+  // 投稿ダイアログの送信 → 画像/動画アップロードで投稿し、後片付けする。
+  function submitPost() {
+    if (!postDialog || status !== "open") {
       return;
     }
-    void sendImage(videoJob.clip, videoPostCaption.trim());
-    discardVideoJob();
+    void sendImage(postDialog.file, postCaption.trim());
+    closePostDialog(true);
+  }
+
+  // 投稿ダイアログを閉じる。画像URLはここで解放。動画は投稿時のみジョブを破棄し、
+  // [戻る]（未投稿）ではジョブを残して完了バーに戻す。
+  function closePostDialog(posted: boolean) {
+    const wasVideo = postDialog?.kind === "video";
+    setPostDialog((p) => {
+      if (p?.kind === "image") {
+        URL.revokeObjectURL(p.url);
+      }
+      return null;
+    });
+    setPostCaption("");
+    if (wasVideo && posted) {
+      discardVideoJob();
+    }
   }
 
   // ジョブを破棄する（完了後の[キャンセル]/失敗の[閉じる]/投稿後）。進行中の結果は無視する。
   // thumbUrl の解放は videoJob を見る useEffect のクリーンアップに任せる。
   function discardVideoJob() {
     videoJobTokenRef.current++;
-    setVideoPostOpen(false);
-    setVideoPostCaption("");
     setVideoJob(null);
   }
 
@@ -1743,6 +1799,38 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
               <span className="scrollToBottomIcon" aria-hidden="true" />
             </button>
           ) : null}
+          {useComposerButton && !ghostMode && (channel?.imageUploadEnabled ?? false) ? (
+            <>
+              <input
+                ref={attachFileInputRef}
+                type="file"
+                accept="image/*,video/*"
+                className="srOnly"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) {
+                    handleAttachFile(file);
+                  }
+                  event.target.value = "";
+                }}
+              />
+              <button
+                type="button"
+                className="attachFab"
+                aria-label="画像・動画を添付"
+                title="画像・動画"
+                disabled={attachBusy}
+                onClick={() => attachFileInputRef.current?.click()}
+              >
+                <svg className="composeFabIcon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M21 5v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2zm-2 0H5v9.6l3.7-3.7 3.3 3.3 3.3-3.3L19 16.6V5zM9 8.5A1.5 1.5 0 1 1 6 8.5a1.5 1.5 0 0 1 3 0z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </button>
+            </>
+          ) : null}
           {useComposerButton && !ghostMode ? (
             <button
               type="button"
@@ -1771,10 +1859,8 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
             disabled={status !== "open"}
             maxLength={messageMaxLength}
             onSend={send}
-            imageUploadEnabled={channel?.imageUploadEnabled ?? false}
-            onSendImage={sendImage}
-            onVideoSelected={handleVideoSelected}
-            attachBlocked={attachBusy}
+            canAttach={canAttach}
+            onAttachFile={handleAttachFile}
           />
         ) : null}
         {useComposerButton && mobileComposerOpen ? (
@@ -1798,10 +1884,9 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
                 onBodyChange={setMobileDraft}
                 onAfterSend={closeMobileComposer}
                 onSend={send}
-                imageUploadEnabled={channel?.imageUploadEnabled ?? false}
-                onSendImage={sendImage}
-                onVideoSelected={handleVideoSelected}
-                attachBlocked={attachBusy}
+                canAttach={canAttach}
+                showAttachButton={false}
+                onAttachFile={handleAttachFile}
                 textareaRef={mobileTextareaRef}
               />
             </div>
@@ -2000,40 +2085,37 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
           onCancel={() => setVideoEditFile(null)}
         />
       ) : null}
-      {/* 変換完了後の[投稿] → サムネ付き投稿ダイアログ。 */}
-      {videoPostOpen && videoJob?.status === "done" ? (
+      {/* 画像/動画の投稿ダイアログ（大きくプレビュー＋キャプション）。 */}
+      {postDialog ? (
         <div
           className="videoPostOverlay"
           role="presentation"
-          onClick={() => setVideoPostOpen(false)}
+          onClick={() => closePostDialog(false)}
         >
           <div
             className="videoPostDialog"
             role="dialog"
             aria-modal="true"
-            aria-label="動画を投稿"
+            aria-label={postDialog.kind === "video" ? "動画を投稿" : "画像を投稿"}
             onClick={(event) => event.stopPropagation()}
           >
-            <video
-              className="videoPostThumb"
-              src={videoJob.thumbUrl}
-              muted
-              loop
-              autoPlay
-              playsInline
-            />
+            {postDialog.kind === "video" ? (
+              <video className="videoPostThumb" src={postDialog.url} muted loop autoPlay playsInline />
+            ) : (
+              <img className="videoPostThumb" src={postDialog.url} alt="投稿する画像のプレビュー" />
+            )}
             <textarea
               className="videoPostCaption"
               placeholder="メッセージ（任意）"
-              value={videoPostCaption}
+              value={postCaption}
               maxLength={messageMaxLength}
-              onChange={(event) => setVideoPostCaption(event.target.value)}
+              onChange={(event) => setPostCaption(event.target.value)}
             />
             <div className="videoPostActions">
               <button
                 type="button"
                 className="videoPostSend"
-                onClick={submitVideoPost}
+                onClick={submitPost}
                 disabled={status !== "open"}
               >
                 投稿
@@ -2041,7 +2123,7 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
               <button
                 type="button"
                 className="videoPostBack"
-                onClick={() => setVideoPostOpen(false)}
+                onClick={() => closePostDialog(false)}
               >
                 戻る
               </button>

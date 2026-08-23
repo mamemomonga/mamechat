@@ -3470,6 +3470,37 @@ body:has(.chatPage) {
   height: 1.5rem;
   width: 1.5rem;
 }
+/* 書き込みFABの左隣に置く「画像・動画」FAB。鉛筆(アクセント)と区別するため面色。 */
+.attachFab {
+  align-items: center;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  bottom: 1rem;
+  box-shadow: var(--shadow);
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  height: 3.4rem;
+  justify-content: center;
+  padding: 0;
+  position: absolute;
+  right: calc(1rem + 3.4rem + 0.6rem);
+  width: 3.4rem;
+  z-index: 9;
+}
+.attachFab:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+}
+.attachFab:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+.attachFab:focus-visible {
+  outline: 3px solid rgb(255 255 255 / 70%);
+  outline-offset: 2px;
+}
 
 /* iOSなどでホーム画面から起動したPWA（standalone表示）専用のセーフエリア対応。
    ステータスバー（時計/バッテリー）が black-translucent でコンテンツに重なるため、
@@ -3494,7 +3525,8 @@ body:has(.chatPage) {
   }
 
   /* 書き込みFABはホームインジケータ／画面の丸みを避けて少し持ち上げる。 */
-  .composeFab {
+  .composeFab,
+  .attachFab {
     bottom: calc(1rem + env(safe-area-inset-bottom));
   }
   .scrollToBottomButton.raised {

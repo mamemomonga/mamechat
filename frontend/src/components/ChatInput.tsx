@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { isVideoFile, VIDEO_MAX_BYTES, VIDEO_MAX_LABEL } from "../lib/media";
+import { isVideoFile } from "../lib/media";
 
 type Props = {
   disabled: boolean;
@@ -15,12 +15,12 @@ type Props = {
   onBodyChange?: (body: string) => void;
   onAfterSend?: () => void;
   onSend: (body: string) => void;
-  imageUploadEnabled?: boolean;
-  onSendImage?: (file: File, caption: string) => void;
-  // 動画が選ばれたら親へ渡す（親がトリミングUIを開き、変換をバックグラウンドで行う）。
-  onVideoSelected?: (file: File) => void;
-  // 動画処理中などで添付を一時的に禁止する（テキスト投稿は可能）。
-  attachBlocked?: boolean;
+  // 添付が可能か（チャンネル設定で許可、かつ処理中でない）。false なら添付ボタン等を出さない。
+  canAttach?: boolean;
+  // 画像添付ボタンを表示するか。モバイルの入力ドロワーでは別途「画像」FABを使うため false。
+  showAttachButton?: boolean;
+  // ファイル（画像/動画）が選ばれたら親へ渡す。親が投稿フォーム/編集画面を開く。
+  onAttachFile?: (file: File) => void;
   textareaRef?: Ref<HTMLTextAreaElement>;
 };
 
@@ -42,26 +42,19 @@ export default function ChatInput({
   onBodyChange,
   onAfterSend,
   onSend,
-  imageUploadEnabled = false,
-  onSendImage,
-  onVideoSelected,
-  attachBlocked = false,
+  canAttach = false,
+  showAttachButton = true,
+  onAttachFile,
   textareaRef,
 }: Props) {
   const [uncontrolledBody, setUncontrolledBody] = useState("");
   const [enterToSend, setEnterToSend] = useState(loadEnterToSend);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [dragActive, setDragActive] = useState(false);
-  const [attachError, setAttachError] = useState("");
-  const imagePreviewRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const body = controlledBody ?? uncontrolledBody;
-  const isVideoAttachment = imageFile?.type === "video/mp4";
   const charsLeft = maxLength - Array.from(body).length;
-  const canAttachImage = imageUploadEnabled && !!onSendImage;
-  const hasContent = body.trim() !== "" || imageFile !== null;
+  const canAttachFile = canAttach && !!onAttachFile;
+  const hasContent = body.trim() !== "";
 
   useEffect(() => {
     try {
@@ -71,80 +64,11 @@ export default function ChatInput({
     }
   }, [enterToSend]);
 
-  // アンマウント時に残ったプレビューURLを解放する。
-  useEffect(() => {
-    return () => {
-      if (imagePreviewRef.current) {
-        URL.revokeObjectURL(imagePreviewRef.current);
-      }
-    };
-  }, []);
-
-  // 添付画像の設定。選択時にオブジェクトURLを同期生成して即座にサムネイル表示し、
-  // 差し替え・解除のタイミングで古いURLを解放する。
-  function setImage(file: File | null) {
-    if (imagePreviewRef.current) {
-      URL.revokeObjectURL(imagePreviewRef.current);
-    }
-    const url = file ? URL.createObjectURL(file) : null;
-    imagePreviewRef.current = url;
-    setImagePreview(url);
-    setImageFile(file);
-    setImageViewerOpen(false);
-  }
-
-  function clearImage() {
-    setImage(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  }
-
-  // 選択された添付ファイルの振り分け。動画は親（トリミングUI＋バックグラウンド変換）へ渡し、
-  // それ以外は従来どおり添付プレビューにする。動画は変換前の元ファイル上限で弾く。
-  function chooseFile(file: File) {
-    setAttachError("");
-    // 動画処理中などで添付が禁止されているときは何もしない。
-    if (attachBlocked) {
-      return;
-    }
-    if (isVideoFile(file)) {
-      if (file.size > VIDEO_MAX_BYTES) {
-        setAttachError(`動画が大きすぎます（最大${VIDEO_MAX_LABEL}）`);
-        clearFileInput();
-        return;
-      }
-      onVideoSelected?.(file);
-      // 同じ動画を再選択してもトリガーできるよう入力をクリアする。
-      clearFileInput();
-      return;
-    }
-    setImage(file);
-  }
-
-  function clearFileInput() {
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  }
-
   function submitMessage() {
     if (disabled || !hasContent) {
       return;
     }
-    const caption = body.trim();
-    if (imageFile && onSendImage) {
-      // 画像はリサイズ・アップロードを非同期で行うため即座に投稿欄をクリアする。
-      onSendImage(imageFile, caption);
-      clearImage();
-      updateBody("");
-      onAfterSend?.();
-      return;
-    }
-    if (!caption) {
-      return;
-    }
-    onSend(caption);
+    onSend(body.trim());
     updateBody("");
     onAfterSend?.();
   }
@@ -176,6 +100,18 @@ export default function ChatInput({
     setUncontrolledBody(nextBody);
   }
 
+  // ファイル（画像/動画）を親へ渡す。親が投稿フォーム/動画編集を開く。
+  function chooseFile(file: File) {
+    if (!canAttachFile) {
+      return;
+    }
+    onAttachFile?.(file);
+    // 同じファイルを再選択してもトリガーできるよう入力をクリアする。
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }
+
   function handlePickImage(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] ?? null;
     if (file) {
@@ -189,7 +125,7 @@ export default function ChatInput({
   }
 
   // FileList から最初の添付可能ファイルを取り出す。
-  function firstImageFile(files: FileList | null | undefined): File | null {
+  function firstAttachable(files: FileList | null | undefined): File | null {
     if (!files) {
       return null;
     }
@@ -202,7 +138,7 @@ export default function ChatInput({
   }
 
   function handleDragOver(event: React.DragEvent) {
-    if (!canAttachImage || disabled || attachBlocked) {
+    if (!canAttachFile || disabled) {
       return;
     }
     // ファイルのドラッグ中だけドロップを受け付ける（テキスト選択のドラッグ等は無視）。
@@ -221,10 +157,10 @@ export default function ChatInput({
   }
 
   function handleDrop(event: React.DragEvent) {
-    if (!canAttachImage || disabled || attachBlocked) {
+    if (!canAttachFile || disabled) {
       return;
     }
-    const file = firstImageFile(event.dataTransfer.files);
+    const file = firstAttachable(event.dataTransfer.files);
     if (file) {
       // ブラウザが画像を開いてしまうのを防ぎ、添付として扱う。
       event.preventDefault();
@@ -233,9 +169,9 @@ export default function ChatInput({
     setDragActive(false);
   }
 
-  // 画像をペーストしたらファイル選択と同じく添付する（リサイズ・JPEG化は送信時に行う）。
+  // 画像/動画をペーストしたらファイル選択と同じく添付フローへ渡す。
   function handlePaste(event: React.ClipboardEvent<HTMLTextAreaElement>) {
-    if (!canAttachImage || disabled || attachBlocked) {
+    if (!canAttachFile || disabled) {
       return;
     }
     const items = event.clipboardData?.items;
@@ -262,45 +198,6 @@ export default function ChatInput({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      {attachError ? <div className="attachError">{attachError}</div> : null}
-      {imageFile && imagePreview ? (
-        <div className="imageAttachPreview">
-          <button
-            type="button"
-            className="imageAttachPreviewButton"
-            onClick={() => setImageViewerOpen(true)}
-            aria-label="添付プレビューを拡大"
-          >
-            {isVideoAttachment ? (
-              <video className="imageAttachThumb" src={imagePreview} muted loop autoPlay playsInline />
-            ) : (
-              <img className="imageAttachThumb" src={imagePreview} alt="添付プレビュー" />
-            )}
-          </button>
-          <button
-            type="button"
-            className="imageAttachRemove"
-            onClick={clearImage}
-            aria-label="画像を取り消す"
-          >
-            ×
-          </button>
-        </div>
-      ) : null}
-      {imageViewerOpen && imagePreview ? (
-        <button
-          type="button"
-          className="imageViewerOverlay"
-          onClick={() => setImageViewerOpen(false)}
-          aria-label="拡大画像を閉じる"
-        >
-          {isVideoAttachment ? (
-            <video className="imageViewerImage" src={imagePreview} muted loop autoPlay playsInline controls />
-          ) : (
-            <img className="imageViewerImage" src={imagePreview} alt="拡大画像" />
-          )}
-        </button>
-      ) : null}
       <textarea
         ref={textareaRef}
         value={body}
@@ -318,7 +215,7 @@ export default function ChatInput({
         <button type="submit" className="sendButton" disabled={disabled || !hasContent}>
           送信
         </button>
-        {canAttachImage ? (
+        {canAttachFile && showAttachButton ? (
           <>
             <input
               ref={fileInputRef}
@@ -331,8 +228,7 @@ export default function ChatInput({
               type="button"
               className="imageAttachButton"
               onClick={() => fileInputRef.current?.click()}
-              disabled={disabled || attachBlocked}
-              title={attachBlocked ? "動画の処理中は画像・動画を添付できません" : undefined}
+              disabled={disabled}
             >
               画像
             </button>

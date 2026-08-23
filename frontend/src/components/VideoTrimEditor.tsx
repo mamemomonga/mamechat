@@ -40,6 +40,9 @@ export default function VideoTrimEditor({ file, onCancel, onConfirm }: Props) {
   // （rAFのクロージャが古い値を掴まないように）。
   const startRef = useRef(0);
   const endRef = useRef(0);
+  // 直前フレームで再生位置が選択区間内にあったか。範囲外へシークしたらループを止め、
+  // 再び範囲内へ入ったらループを再開するために使う。
+  const wasInsideRef = useRef(true);
 
   const [srcUrl, setSrcUrl] = useState<string>("");
   const [duration, setDuration] = useState(0);
@@ -81,12 +84,17 @@ export default function VideoTrimEditor({ file, onCancel, onConfirm }: Props) {
       if (video) {
         const s = startRef.current;
         const e = endRef.current;
-        if (e > s && video.currentTime >= e) {
-          // 終了点に到達 → 開始点へ戻ってループ。
+        const t = video.currentTime;
+        // 区間内で再生していて終了点に達したら開始点へ戻る（ループ）。
+        // ただし範囲外へシークした後（wasInside=false）はループせず素通しし、
+        // 再び範囲内へ入ったらループを再開する。
+        if (e > s && t >= e && wasInsideRef.current) {
           video.currentTime = s;
           setCurrentTime(s);
+          wasInsideRef.current = true;
         } else {
-          setCurrentTime(video.currentTime);
+          setCurrentTime(t);
+          wasInsideRef.current = e > s && t >= s && t < e;
         }
       }
       rafRef.current = requestAnimationFrame(tick);
@@ -150,14 +158,27 @@ export default function VideoTrimEditor({ file, onCancel, onConfirm }: Props) {
     videoRef.current?.pause();
   }
 
+  // 指定位置へシークし、そこから再生を開始する。範囲内外に応じてループ状態も更新する。
+  function seekTo(t: number) {
+    const video = videoRef.current;
+    if (!video) {
+      return;
+    }
+    const clamped = clamp(t, 0, duration);
+    video.currentTime = clamped;
+    setCurrentTime(clamped);
+    wasInsideRef.current = end > start && clamped >= start && clamped < end;
+    void video.play().catch(() => {
+      // 自動再生がブロックされても手動で再生できる。
+    });
+  }
+
   function seekBy(delta: number) {
     const video = videoRef.current;
     if (!video) {
       return;
     }
-    const t = clamp(video.currentTime + delta, 0, duration);
-    video.currentTime = t;
-    setCurrentTime(t);
+    seekTo(video.currentTime + delta);
   }
 
   // 開始マーカを現在位置に設定する。終了点は基本そのまま（自動設定しない）。
@@ -183,13 +204,11 @@ export default function VideoTrimEditor({ file, onCancel, onConfirm }: Props) {
   }
 
   function seekToRatio(ratio: number) {
-    const video = videoRef.current;
-    if (!video || duration <= 0) {
+    if (duration <= 0) {
       return;
     }
-    const t = clamp(ratio * duration, 0, duration);
-    video.currentTime = t;
-    setCurrentTime(t);
+    // タッチ/クリックでのシークもその位置から再生を開始する。
+    seekTo(ratio * duration);
   }
 
   function handleTrackClick(event: React.MouseEvent<HTMLDivElement>) {
@@ -328,7 +347,8 @@ export default function VideoTrimEditor({ file, onCancel, onConfirm }: Props) {
             type="button"
             className="videoTrimBtn videoTrimConfirm"
             onClick={confirm}
-            aria-label="決定（変換してアップロード）"
+            aria-label="採用"
+            title="採用"
           >
             <IconConfirm />
           </button>
@@ -337,6 +357,7 @@ export default function VideoTrimEditor({ file, onCancel, onConfirm }: Props) {
             className="videoTrimBtn videoTrimCancel"
             onClick={onCancel}
             aria-label="キャンセル"
+            title="キャンセル"
           >
             <IconCancel />
           </button>
