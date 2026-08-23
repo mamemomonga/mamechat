@@ -117,10 +117,16 @@ export async function processVideoClip(
   };
   const logTail = () => logLines.slice(-40).join("\n");
 
-  const handleProgress = (event: { progress: number }) => {
-    // ffmpeg の progress は 0..1。範囲外の値が来ることがあるので丸める。
-    const ratio = Math.min(1, Math.max(0, event.progress));
-    onProgress?.(ratio);
+  const handleProgress = (event: { progress: number; time: number }) => {
+    // ffmpeg.wasm 内蔵の progress は「入力の全長」に対する比なので、長い動画を短く切り出すと
+    // 実際には完了しているのに 10% 程度で止まって見える。ここでは処理済みの出力時間
+    // （event.time はマイクロ秒）を、切り出し尺(duration)で割って正しい進捗を出す。
+    const processedSec = typeof event.time === "number" ? event.time / 1_000_000 : NaN;
+    const ratio =
+      duration > 0 && Number.isFinite(processedSec) && processedSec > 0
+        ? processedSec / duration
+        : event.progress;
+    onProgress?.(Math.min(1, Math.max(0, ratio)));
   };
   ffmpeg.on("progress", handleProgress);
   ffmpeg.on("log", onLog);
@@ -150,8 +156,12 @@ export async function processVideoClip(
     // WORKERFS はランダムアクセス可能なので、巨大ファイルでも必要範囲だけを読む。
     // -an で音声除去。scale は短辺を720に収め拡大はしない（元が小さければそのまま）。
     // H.264(yuv420p) は幅・高さが偶数でなければエンコードに失敗するため、720に丸めた側も
-    // trunc(.../2)*2 で必ず偶数化する（自動側は -2 で偶数化）。元寸が奇数の動画で
-    // 「対応していない形式」になるのを防ぐ。-r を付けず元fpsを保持。
+    // trunc(.../2)*2 で必ず偶数化する（自動側は -2 で偶数化）。-r を付けず元fpsを保持。
+    //
+    // 速度優先の設定：シングルスレッドのwasmではlibx264のエンコードが律速。preset ultrafast
+    // で大幅に高速化する（サーバ側でどのみち再エンコードされるため、中間ファイルの圧縮効率は
+    // 最終品質にほぼ影響しない）。ultrafast は非効率でサイズが膨らみやすいので maxrate/bufsize
+    // で上限を抑え、30秒でもサーバ上限(20MB)に収める。scale は lanczos より軽い bicubic(既定)。
     const code = await ffmpeg.exec([
       "-ss",
       startSec.toFixed(3),
@@ -161,13 +171,17 @@ export async function processVideoClip(
       duration.toFixed(3),
       "-an",
       "-vf",
-      "scale='if(gt(iw,ih),-2,trunc(min(720,iw)/2)*2)':'if(gt(iw,ih),trunc(min(720,ih)/2)*2,-2)':flags=lanczos",
+      "scale='if(gt(iw,ih),-2,trunc(min(720,iw)/2)*2)':'if(gt(iw,ih),trunc(min(720,ih)/2)*2,-2)'",
       "-c:v",
       "libx264",
       "-preset",
-      "veryfast",
+      "ultrafast",
       "-crf",
       "23",
+      "-maxrate",
+      "4M",
+      "-bufsize",
+      "8M",
       "-pix_fmt",
       "yuv420p",
       "-movflags",
