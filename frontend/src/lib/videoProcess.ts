@@ -6,7 +6,7 @@
 // コアは同一オリジンの /ffmpeg/ から読み込む（vite.config.ts が node_modules から複製）。
 
 import { FFmpeg, FFFSType } from "@ffmpeg/ffmpeg";
-import { fetchFile, toBlobURL } from "@ffmpeg/util";
+import { fetchFile } from "@ffmpeg/util";
 
 // VideoProcessError は失敗の要約（message）と、ffmpeg のログなどの詳細（detail）を持つ。
 // UI で詳細を折りたたみ表示できるようにするための型。
@@ -41,11 +41,15 @@ async function getFFmpeg(): Promise<FFmpeg> {
   if (!ffmpegPromise) {
     ffmpegPromise = (async () => {
       const ffmpeg = new FFmpeg();
-      const base = `${import.meta.env.BASE_URL ?? "/"}ffmpeg`.replace(/\/{2,}/g, "/");
+      // 同一オリジンから配信するコアを直接URLで指定する（blob: を使わない）。
+      // 本番CSPは script-src 'self' のため、blob: モジュールをワーカーで動的importすると
+      // ブロックされる（Failed to fetch dynamically imported module: blob:...）。
+      // 直接の same-origin URL なら 'self' で読み込める。
+      const base = new URL(`${import.meta.env.BASE_URL || "/"}ffmpeg/`, window.location.href);
       try {
         await ffmpeg.load({
-          coreURL: await toBlobURL(`${base}/ffmpeg-core.js`, "text/javascript"),
-          wasmURL: await toBlobURL(`${base}/ffmpeg-core.wasm`, "application/wasm"),
+          coreURL: new URL("ffmpeg-core.js", base).href,
+          wasmURL: new URL("ffmpeg-core.wasm", base).href,
         });
       } catch (err) {
         throw new VideoProcessError(
