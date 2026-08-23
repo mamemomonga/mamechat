@@ -345,21 +345,17 @@ export default function VideoTrimEditor({ file, onCancel, onConfirm }: Props) {
           </button>
           <button
             type="button"
-            className="videoTrimBtn videoTrimConfirm"
+            className="videoTrimBtn videoTrimTextBtn videoTrimConfirm"
             onClick={confirm}
-            aria-label="採用"
-            title="採用"
           >
-            <IconConfirm />
+            採用
           </button>
           <button
             type="button"
-            className="videoTrimBtn videoTrimCancel"
+            className="videoTrimBtn videoTrimTextBtn videoTrimCancel"
             onClick={onCancel}
-            aria-label="キャンセル"
-            title="キャンセル"
           >
-            <IconCancel />
+            キャンセル
           </button>
         </div>
       </div>
@@ -424,21 +420,6 @@ function IconMarkEnd() {
     <svg {...svgProps}>
       <line x1="17" y1="4" x2="17" y2="20" />
       <path d="M4 7l7 5-7 5z" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-function IconConfirm() {
-  return (
-    <svg {...svgProps}>
-      <circle cx="12" cy="12" r="8" />
-    </svg>
-  );
-}
-function IconCancel() {
-  return (
-    <svg {...svgProps}>
-      <line x1="6" y1="6" x2="18" y2="18" />
-      <line x1="18" y1="6" x2="6" y2="18" />
     </svg>
   );
 }

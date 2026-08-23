@@ -3219,7 +3219,14 @@ body:has(.chatPage) {
   cursor: default;
   opacity: 0.4;
 }
-/* ○（決定）はアクセント、×（キャンセル）は危険色で意味づけする。 */
+/* テキストラベルのボタン（採用・キャンセル）はアイコンボタンの固定幅を解除して文字幅にする。 */
+.videoTrimTextBtn {
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0 1rem;
+  width: auto;
+}
+/* 採用はアクセント、キャンセルは危険色で意味づけする。 */
 .videoTrimConfirm {
   background: var(--accent);
   border-color: color-mix(in srgb, var(--accent) 75%, #fff);
