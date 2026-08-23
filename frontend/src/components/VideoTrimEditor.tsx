@@ -36,6 +36,10 @@ export default function VideoTrimEditor({ file, onCancel, onConfirm }: Props) {
   const srcUrlRef = useRef<string>("");
   const fpsRef = useRef<number>(30);
   const rafRef = useRef<number>(0);
+  // ループ判定は毎フレーム最新の start/end を参照する必要があるため ref に写す
+  // （rAFのクロージャが古い値を掴まないように）。
+  const startRef = useRef(0);
+  const endRef = useRef(0);
 
   const [srcUrl, setSrcUrl] = useState<string>("");
   const [duration, setDuration] = useState(0);
@@ -45,6 +49,12 @@ export default function VideoTrimEditor({ file, onCancel, onConfirm }: Props) {
   const [end, setEnd] = useState(0);
   const [fpsLabel, setFpsLabel] = useState(30);
   const [dragging, setDragging] = useState<null | "start" | "end">(null);
+
+  // start/end の最新値を ref へ同期する。
+  useEffect(() => {
+    startRef.current = start;
+    endRef.current = end;
+  }, [start, end]);
 
   // 選択範囲内かどうか。範囲外ならカウンターは 00:00。
   const inRange = currentTime >= start && currentTime <= end && end > start;
@@ -60,7 +70,8 @@ export default function VideoTrimEditor({ file, onCancel, onConfirm }: Props) {
     };
   }, [file]);
 
-  // 再生中は requestAnimationFrame で滑らかに現在位置を追う。
+  // 再生中は requestAnimationFrame で滑らかに現在位置を追い、選択区間をループする
+  //（終了点に達したら開始点へ戻る）。
   useEffect(() => {
     if (!playing) {
       return;
@@ -68,7 +79,15 @@ export default function VideoTrimEditor({ file, onCancel, onConfirm }: Props) {
     const tick = () => {
       const video = videoRef.current;
       if (video) {
-        setCurrentTime(video.currentTime);
+        const s = startRef.current;
+        const e = endRef.current;
+        if (e > s && video.currentTime >= e) {
+          // 終了点に到達 → 開始点へ戻ってループ。
+          video.currentTime = s;
+          setCurrentTime(s);
+        } else {
+          setCurrentTime(video.currentTime);
+        }
       }
       rafRef.current = requestAnimationFrame(tick);
     };
@@ -117,6 +136,10 @@ export default function VideoTrimEditor({ file, onCancel, onConfirm }: Props) {
     setStart(0);
     setEnd(Math.min(dur, VIDEO_MAX_SECONDS));
     setCurrentTime(0);
+    // 編集開始時は自動再生（ミュートなのでモバイルでも許可される）。選択区間をループ再生する。
+    void video.play().catch(() => {
+      // 自動再生がブロックされても、ユーザーが再生ボタンで開始できる。
+    });
   }
 
   function play() {
@@ -137,18 +160,26 @@ export default function VideoTrimEditor({ file, onCancel, onConfirm }: Props) {
     setCurrentTime(t);
   }
 
-  // 開始マーカを現在位置に設定し、終了は start+最大長 か 動画終了の短いほう。
+  // 開始マーカを現在位置に設定する。終了点は基本そのまま（自動設定しない）。
+  // ただし区間が最大長を超える、または終了点が開始点以下になる場合は、
+  // 終了点を開始点+最大長（動画終端で頭打ち）へ移動する。
   function setStartMarker() {
     const t = clamp(currentTime, 0, duration);
     setStart(t);
-    setEnd(Math.min(t + VIDEO_MAX_SECONDS, duration));
+    if (end - t > VIDEO_MAX_SECONDS || end <= t) {
+      setEnd(Math.min(t + VIDEO_MAX_SECONDS, duration));
+    }
   }
 
-  // 終了マーカを現在位置に設定し、開始は end-最大長 か 動画先頭の遅いほう。
+  // 終了マーカを現在位置に設定する。開始点は基本そのまま（自動設定しない）。
+  // ただし区間が最大長を超える、または開始点が終了点以上になる場合は、
+  // 開始点を終了点-最大長（動画先頭で頭打ち）へ移動する。
   function setEndMarker() {
     const t = clamp(currentTime, 0, duration);
     setEnd(t);
-    setStart(Math.max(t - VIDEO_MAX_SECONDS, 0));
+    if (t - start > VIDEO_MAX_SECONDS || start >= t) {
+      setStart(Math.max(t - VIDEO_MAX_SECONDS, 0));
+    }
   }
 
   function seekToRatio(ratio: number) {
@@ -229,6 +260,7 @@ export default function VideoTrimEditor({ file, onCancel, onConfirm }: Props) {
               className="videoTrimVideo"
               src={srcUrl}
               muted
+              autoPlay
               playsInline
               onLoadedMetadata={handleLoadedMetadata}
               onPlay={() => setPlaying(true)}

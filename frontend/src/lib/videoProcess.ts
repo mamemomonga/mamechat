@@ -35,6 +35,24 @@ function toDetail(err: unknown): string {
 }
 
 let ffmpegPromise: Promise<FFmpeg> | null = null;
+// 読み込み済みインスタンス。中断（terminate）で使う。
+let ffmpegInstance: FFmpeg | null = null;
+
+// cancelVideoProcessing は進行中の変換を中断する。ワーカーを terminate して wasm の
+// エンコード処理（CPU）を即座に止め、次回はコアを読み込み直させる。進行中の
+// processVideoClip は拒否されるが、呼び出し側はトークン不一致で結果を無視する想定。
+export function cancelVideoProcessing() {
+  const inst = ffmpegInstance;
+  ffmpegInstance = null;
+  ffmpegPromise = null;
+  if (inst) {
+    try {
+      inst.terminate();
+    } catch {
+      // 既に停止していても問題ない。
+    }
+  }
+}
 
 // getFFmpeg は ffmpeg.wasm を一度だけ読み込んで再利用する。読み込み失敗は詳細付きで投げる。
 async function getFFmpeg(): Promise<FFmpeg> {
@@ -57,6 +75,7 @@ async function getFFmpeg(): Promise<FFmpeg> {
           toDetail(err),
         );
       }
+      ffmpegInstance = ffmpeg;
       return ffmpeg;
     })();
     // 読み込みに失敗したら次回リトライできるようキャッシュを捨てる。

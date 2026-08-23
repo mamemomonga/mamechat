@@ -28,7 +28,7 @@ import { getPushConfig, isPushEnvironmentSupported } from "../lib/pushNotify";
 import { isOperatingHintDismissed, setOperatingHintDismissed } from "../lib/operatingHint";
 import { resizeImageToJpeg } from "../lib/image";
 import { isAnimatedMedia, MEDIA_MAX_BYTES } from "../lib/media";
-import { processVideoClip, VideoProcessError } from "../lib/videoProcess";
+import { cancelVideoProcessing, processVideoClip, VideoProcessError } from "../lib/videoProcess";
 import { labelChannelGrace, labelChannelRetention } from "../lib/suspendOptions";
 import { handleServerVersion } from "../lib/version";
 import { connectChannelSocket, type WebSocketStatus } from "../lib/websocket";
@@ -965,10 +965,12 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
   }
 
   // 動画が選ばれたらトリミングエディタを開く。処理中(ジョブあり)は新たに開かない。
+  // モバイルでは入力ドロワーを閉じ、エディタだけが前面に出るようにする。
   function handleVideoSelected(file: File) {
     if (videoJob || videoEditFile) {
       return;
     }
+    closeMobileComposer();
     setVideoEditFile(file);
   }
 
@@ -1028,13 +1030,19 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
     discardVideoJob();
   }
 
-  // ジョブを破棄する（[キャンセル]/失敗の[閉じる]/投稿後）。進行中なら結果を無視する。
+  // ジョブを破棄する（完了後の[キャンセル]/失敗の[閉じる]/投稿後）。進行中の結果は無視する。
   // thumbUrl の解放は videoJob を見る useEffect のクリーンアップに任せる。
   function discardVideoJob() {
     videoJobTokenRef.current++;
     setVideoPostOpen(false);
     setVideoPostCaption("");
     setVideoJob(null);
+  }
+
+  // 変換中の[キャンセル] → ffmpegを中断（CPU停止）してジョブを破棄する。
+  function cancelVideoJob() {
+    cancelVideoProcessing();
+    discardVideoJob();
   }
 
   // 完了ジョブのプレビューURLはジョブが変わる/アンマウント時に解放する。
@@ -1664,6 +1672,11 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
                     className="videoJobProgressFill"
                     style={{ width: `${Math.round(videoJob.progress * 100)}%` }}
                   />
+                </div>
+                <div className="videoJobActions">
+                  <button type="button" className="videoJobCancel" onClick={cancelVideoJob}>
+                    キャンセル
+                  </button>
                 </div>
               </>
             ) : videoJob.status === "done" ? (
