@@ -20,6 +20,8 @@ type Props = {
   messages: ServerToClientMessage[];
   // canModerateMessages はチャンネルオーナー/管理者。どの投稿も削除できる。
   canModerateMessages?: boolean;
+  // canDownloadMedia が true のとき、添付動画・画像のダウンロード項目を出す（オーナー限定）。
+  canDownloadMedia?: boolean;
   // currentUserId は閲覧中のユーザー。自分の投稿は削除できる。
   currentUserId?: string;
   onDeleteMessage?: (messageId: string) => void;
@@ -38,6 +40,7 @@ type Props = {
 export default function ChatMessageList({
   messages,
   canModerateMessages = false,
+  canDownloadMedia = false,
   currentUserId,
   onDeleteMessage,
   ttsEnabled = false,
@@ -54,6 +57,10 @@ export default function ChatMessageList({
   const [menuMessageId, setMenuMessageId] = useState<string | null>(null);
   // メニューを開いた投稿が削除可能か（メニュー表示時に確定する）。
   const [menuCanDelete, setMenuCanDelete] = useState(false);
+  // メニューを開いた投稿の添付メディア（画像/動画）。無ければ null。
+  const [menuMedia, setMenuMedia] = useState<{ url: string; isVideo: boolean } | null>(null);
+  // ダウンロード中はメニュー項目を無効化して二重押しを防ぐ。
+  const [downloading, setDownloading] = useState(false);
   // 絵文字パレットを開いている投稿IDと、開く向き（上/下）。
   const [paletteMessageId, setPaletteMessageId] = useState<string | null>(null);
   // パレットを寄せる基準ボタン（クリックされた「リアクション追加」ボタン）。
@@ -88,6 +95,34 @@ export default function ChatMessageList({
     setPaletteMessageId(null);
     onToggleReaction?.(messageId, emoji);
     recordRecentEmoji(emoji);
+  }
+
+  // downloadMedia は添付メディアを取得してブラウザに保存させる。ダウンロード属性付き
+  // アンカーだけでは（同一オリジンでもContent-Dispositionによっては）別タブで開くだけの
+  // 環境があるため、いったん blob へ取得してから object URL で保存を確実にする。
+  async function downloadMedia(url: string, isVideo: boolean) {
+    setDownloading(true);
+    try {
+      const res = await fetch(url);
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = downloadName(url, isVideo, blob.type);
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      // クリック後すぐに revoke するとダウンロードが始まらない環境があるため少し遅らせる。
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 10_000);
+    } catch {
+      // 取得に失敗した場合は、最終手段として別タブで開く（右クリック保存できる）。
+      window.open(url, "_blank", "noopener,noreferrer");
+    } finally {
+      setDownloading(false);
+    }
   }
 
   return (
@@ -128,6 +163,11 @@ export default function ChatMessageList({
                     className="messageMenuButton"
                     onClick={() => {
                       setMenuCanDelete(canDelete);
+                      setMenuMedia(
+                        message.imageUrl
+                          ? { url: message.imageUrl, isVideo: message.mediaKind === "video" }
+                          : null,
+                      );
                       setMenuMessageId(message.id);
                     }}
                     aria-label="この投稿のメニューを開く"
@@ -335,6 +375,22 @@ export default function ChatMessageList({
             >
               ここから読み上げる
             </button>
+            {menuMedia && canDownloadMedia ? (
+              <button
+                type="button"
+                className="messageMenuItem"
+                disabled={downloading}
+                onClick={() => {
+                  const media = menuMedia;
+                  setMenuMessageId(null);
+                  if (media) {
+                    void downloadMedia(media.url, media.isVideo);
+                  }
+                }}
+              >
+                {menuMedia.isVideo ? "動画をダウンロード" : "画像をダウンロード"}
+              </button>
+            ) : null}
             {menuCanDelete ? (
               <button
                 type="button"
@@ -379,6 +435,38 @@ function firstUrl(body: string | undefined | null): string | null {
   }
   // 末尾につきがちな句読点・括弧を除く。
   return match[0].replace(/[)\]}>,.、。！？!?]+$/u, "");
+}
+
+// downloadName は保存時のファイル名を決める。URL末尾のファイル名を活かしつつ、
+// 拡張子が無い場合は種別（動画/画像）とMIMEから補う。
+function downloadName(url: string, isVideo: boolean, mimeType: string): string {
+  let base = "media";
+  try {
+    const path = new URL(url, window.location.href).pathname;
+    const last = path.split("/").filter(Boolean).pop();
+    if (last) {
+      base = decodeURIComponent(last);
+    }
+  } catch {
+    // URL解析に失敗しても既定名で続行する。
+  }
+  if (/\.[a-z0-9]{2,4}$/i.test(base)) {
+    return base;
+  }
+  const ext = extFromMime(mimeType) || (isVideo ? "mp4" : "jpg");
+  return `${base}.${ext}`;
+}
+
+function extFromMime(mimeType: string): string | null {
+  const map: Record<string, string> = {
+    "video/mp4": "mp4",
+    "video/webm": "webm",
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/gif": "gif",
+    "image/webp": "webp",
+  };
+  return map[mimeType.toLowerCase()] ?? null;
 }
 
 function renderBody(body: string, linkify: boolean): ReactNode {

@@ -1776,6 +1776,7 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
           <ChatMessageList
             messages={messages}
             canModerateMessages={isOwner || isPrivileged(user)}
+            canDownloadMedia={isOwner}
             currentUserId={user?.id}
             onDeleteMessage={deleteMessage}
             ttsEnabled={ttsEnabled}
