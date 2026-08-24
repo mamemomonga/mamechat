@@ -1820,7 +1820,7 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
                 className="attachFab"
                 aria-label="画像・動画を添付"
                 title="画像・動画"
-                disabled={attachBusy}
+                disabled={attachBusy || status !== "open"}
                 onClick={() => attachFileInputRef.current?.click()}
               >
                 <svg className="composeFabIcon" viewBox="0 0 24 24" aria-hidden="true">
@@ -1838,6 +1838,7 @@ export function ChannelView({ slug, embedded, onExit, onSuspended, onStatus }: C
               className="composeFab"
               aria-label="メッセージを入力"
               title="書き込み"
+              disabled={status !== "open"}
               onClick={openMobileComposer}
             >
               <svg className="composeFabIcon" viewBox="0 0 24 24" aria-hidden="true">

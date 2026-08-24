@@ -31,6 +31,9 @@
   --warn-border: #574716;
   --led-on: #ff2a2a; /* 録音インジケータ風の赤LED */
   --led-off: #0a0a0a;
+  --online: #2ea86a; /* 接続済み（送信・添付が可能）を表すグリーン */
+  --online-hover: #37c078;
+  --offline: #333a41; /* 未接続でグレーアウトした操作ボタンの面 */
   --overlay: rgb(0 0 0 / 58%); /* モーダル背景 */
   --shadow: 0 14px 36px rgb(0 0 0 / 50%);
 
@@ -3507,6 +3510,36 @@ body:has(.chatPage) {
 .attachFab:focus-visible {
   outline: 3px solid rgb(255 255 255 / 70%);
   outline-offset: 2px;
+}
+
+/* 接続状態の可視化：送信・画像（PC）と鉛筆・添付（スマホ）の操作ボタンは、
+   「接続済み」で使用可能なときはグリーン、それ以外はグレーアウトして押せない見た目にする。
+   これらは既定のアクセント色・面色を上書きするため、後方に置いて優先させる。 */
+.sendButton:not(:disabled),
+.imageAttachButton:not(:disabled),
+.composeFab:not(:disabled),
+.attachFab:not(:disabled) {
+  background: var(--online);
+  border-color: var(--online);
+  color: #fff;
+}
+.sendButton:not(:disabled):hover,
+.imageAttachButton:not(:disabled):hover,
+.composeFab:not(:disabled):hover,
+.attachFab:not(:disabled):hover {
+  background: var(--online-hover);
+  border-color: var(--online-hover);
+}
+.sendButton:disabled,
+.imageAttachButton:disabled,
+.composeFab:disabled,
+.attachFab:disabled {
+  background: var(--offline);
+  border-color: var(--offline);
+  color: var(--text-dim);
+  cursor: not-allowed;
+  opacity: 1; /* 既定のopacityによる減光ではなく、明確なグレーで無効を示す。 */
+  box-shadow: none;
 }
 
 /* iOSなどでホーム画面から起動したPWA（standalone表示）専用のセーフエリア対応。
