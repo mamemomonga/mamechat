@@ -32,6 +32,7 @@ services:
       - "50021"
 
   backend:
+    image: mamechat-backend:local
     build:
       context: .
       dockerfile: backend/Dockerfile
@@ -84,9 +85,9 @@ services:
         condition: service_healthy
 
   tts-worker:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
+    # backend と同じイメージを使う（同一 Dockerfile の並列ビルドでハングするのを避ける）
+    image: mamechat-backend:local
+    pull_policy: never
     command: ["/bin/tts-worker"]
     environment:
       APP_ENV: development

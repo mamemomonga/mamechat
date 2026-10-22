@@ -1,4 +1,5 @@
-FROM golang:1.24-alpine AS build
+# 1.26.10 以上: eMudhra 中間CA鍵漏洩 (CVE-2026-111943) の crypto/x509 ブロックを含む
+FROM golang:1.26.10-alpine AS build
 
 WORKDIR /app/backend
 COPY backend/go.mod backend/go.sum* ./
