@@ -83,7 +83,7 @@ func EnsureOwnerUser(ctx context.Context, pool *pgxpool.Pool, cfg config.Config)
 }
 
 func AuthenticateOwner(ctx context.Context, pool *pgxpool.Pool, cfg config.Config, password string) (UserSnapshot, bool, error) {
-	if !passwordEqual(cfg.OwnerPassword, password) {
+	if cfg.OwnerPassword == "" || !passwordEqual(cfg.OwnerPassword, password) {
 		return UserSnapshot{}, false, nil
 	}
 	user, err := EnsureOwnerUser(ctx, pool, cfg)

@@ -7,7 +7,13 @@ import SettingsPanel from "./components/SettingsPanel";
 import UnavailableNotice from "./components/UnavailableNotice";
 import UserAvatar from "./components/UserAvatar";
 import { DeckProvider } from "./context/DeckContext";
-import { getMe, isTransientError, logout, setUnauthorizedHandler } from "./lib/api";
+import {
+  getMe,
+  getPublicConfig,
+  isTransientError,
+  logout,
+  setUnauthorizedHandler,
+} from "./lib/api";
 import {
   consumeReturnTo,
   handleUnauthorized,
@@ -31,6 +37,8 @@ export default function App() {
   // 設定は画面遷移せずモーダルで開く（トップ・チャットどちらからでも）。
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [channelStatus, setChannelStatus] = useState<WebSocketStatus | null>(null);
+  // 管理ページがサーバ側で有効か（ADMIN_ENABLED）。無効なら管理リンクを隠す。
+  const [adminEnabled, setAdminEnabled] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   // 以前に認証済みだったか（未ログイン検知時にセッション喪失かどうかの判定に使う）。
   const wasAuthedRef = useRef(false);
@@ -83,6 +91,12 @@ export default function App() {
     window.addEventListener("auth-changed", loadUser);
     return () => window.removeEventListener("auth-changed", loadUser);
   }, [loadUser]);
+
+  useEffect(() => {
+    getPublicConfig()
+      .then((config) => setAdminEnabled(Boolean(config.adminEnabled)))
+      .catch(() => setAdminEnabled(false));
+  }, []);
 
   // 401 受信時（ポーリング/API）にログイン・利用不可ページへ誘導する。
   useEffect(() => {
@@ -168,7 +182,7 @@ export default function App() {
           {serviceName}
         </NavLink>
         <nav>
-          {isPrivileged(user) && !suspended ? <a href="/admin/">管理</a> : null}
+          {adminEnabled && isPrivileged(user) && !suspended ? <a href="/admin/">管理</a> : null}
           {/* 接続ステータスはログインユーザーの直左に1つだけ集約表示する。 */}
           {channelStatus ? (
             <span className={`statusPill topStatusPill ${channelStatus}`}>

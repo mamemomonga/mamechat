@@ -22,16 +22,19 @@ const (
 )
 
 type Config struct {
-	AppEnv               string
-	Version              string
-	ServiceName          string
-	HTTPAddr             string
-	DatabaseURL          string
-	RedisURL             string
-	SessionCookieName    string
-	SessionTTL           time.Duration
-	CORSAllowedOrigin    string
-	SecureSessionCookie  bool
+	AppEnv              string
+	Version             string
+	ServiceName         string
+	HTTPAddr            string
+	DatabaseURL         string
+	RedisURL            string
+	SessionCookieName   string
+	SessionTTL          time.Duration
+	CORSAllowedOrigin   string
+	SecureSessionCookie bool
+	// AdminEnabled は管理ページ（/admin、オーナーログイン、管理API）を有効にするか。
+	// 普段は無効にしておき、必要なときだけ環境変数を変えてサーバを再起動する運用を想定する。
+	AdminEnabled         bool
 	OwnerPassword        string
 	OwnerDisplayName     string
 	OwnerHandle          string
@@ -116,6 +119,7 @@ func Load() Config {
 		SessionTTL:             time.Duration(ttlHours) * time.Hour,
 		CORSAllowedOrigin:      getenv("CORS_ALLOWED_ORIGIN", "http://localhost:5173"),
 		SecureSessionCookie:    secureCookie,
+		AdminEnabled:           getenvBool("ADMIN_ENABLED", false),
 		OwnerPassword:          os.Getenv("OWNER_PASSWORD"),
 		OwnerDisplayName:       getenv("OWNER_DISPLAY_NAME", "Owner"),
 		OwnerHandle:            getenv("OWNER_HANDLE", "owner.local"),
@@ -157,8 +161,9 @@ func Load() Config {
 }
 
 func (c Config) Validate() error {
-	if c.OwnerPassword == "" {
-		return errors.New("OWNER_PASSWORD is required")
+	// オーナーパスワードは管理ページへのログインにしか使わないため、有効時のみ必須とする。
+	if c.AdminEnabled && c.OwnerPassword == "" {
+		return errors.New("OWNER_PASSWORD is required when ADMIN_ENABLED is true")
 	}
 	return nil
 }

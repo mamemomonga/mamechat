@@ -50,7 +50,7 @@ cp .env.example .env
 make dev-up
 ```
 
-`.env` に `OWNER_PASSWORD` を設定してから、http://localhost:5173 を開きます。
+管理ページを使う場合は `.env` に `ADMIN_ENABLED=true` と `OWNER_PASSWORD` を設定してから、http://localhost:5173 を開きます。
 
 開発用スタックではVite dev serverを使います。PostgreSQLは `localhost:5432`、Valkeyは `localhost:6379`、バックエンドは `localhost:8080` に公開されます。VOICEVOX ENGINEはCompose内部ネットワークだけで使い、ホストへは公開しません。
 
@@ -64,6 +64,8 @@ Bluesky / AT Protocolログインも `/login` から開始できます。OAuth�
 
 管理ページは `/admin` です。OwnerまたはAdmin権限を持つユーザーでログインしている場合だけ利用できます。
 
+管理ページはセキュリティのため、デフォルトで無効です。`ADMIN_ENABLED=true` を設定してバックエンドを再起動したときだけ、`/admin`・`/admin/login`（`POST /api/owner/login`）・`/api/admin/*` が利用できます。無効時はこれらのAPIが404を返し、ヘッダーの「管理」リンクも表示されません。普段は無効にしておき、管理作業が必要なときだけ一時的に有効化して再起動する運用を想定しています。なお、チャンネル閲覧中の管理者によるメッセージ削除（`DELETE /api/admin/messages/{messageID}`）は管理ページの外の機能のため、無効時も利用できます。
+
 本番相当のスタックでは、フロントエンドを静的なHTML/JS/CSSへビルドし、nginxで配信します。
 
 ```sh
@@ -76,7 +78,7 @@ http://localhost:8080 を開きます。
 
 バックエンドとTTS workerは起動時に `backend/migrations/` 以下のSQLをファイル名順に適用します。
 
-`OWNER_PASSWORD` にデフォルト値はありません。未設定の場合、バックエンドは起動しません。Ownerパスワードはバックエンドの環境変数からのみ読み込まれ、PostgreSQLには保存されません。Adminユーザーのパスワードは通常のローカルユーザーと同じく、bcryptハッシュとしてPostgreSQLに保存されます。
+`OWNER_PASSWORD` にデフォルト値はありません。`ADMIN_ENABLED=true` で未設定の場合、バックエンドは起動しません（管理ページが無効なら未設定でも起動します）。Ownerパスワードはバックエンドの環境変数からのみ読み込まれ、PostgreSQLには保存されません。Adminユーザーのパスワードは通常のローカルユーザーと同じく、bcryptハッシュとしてPostgreSQLに保存されます。
 
 サービス名は `SERVICE_NAME` で変更できます。未指定時は `mamechat` です。画面上部のブランド表示・ページタイトル、および各SNSのOAuthログイン時にアプリ名として表示されます。
 

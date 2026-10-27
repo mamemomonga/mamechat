@@ -91,29 +91,29 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/auth/mastodon/callback", s.mastodonCallback)
 	s.mux.HandleFunc("POST /api/auth/misskey/start", s.misskeyLoginStart)
 	s.mux.HandleFunc("GET /api/auth/misskey/callback", s.misskeyCallback)
-	s.mux.HandleFunc("POST /api/owner/login", s.ownerLogin)
-	s.mux.HandleFunc("GET /api/admin/stats", s.adminStats)
-	s.mux.HandleFunc("GET /api/admin/sessions", s.adminSessions)
-	s.mux.HandleFunc("POST /api/admin/sessions/{sessionID}/revoke", s.adminRevokeSession)
-	s.mux.HandleFunc("POST /api/admin/sessions/revoke-all", s.adminRevokeAllSessions)
-	s.mux.HandleFunc("GET /api/admin/users", s.adminUsers)
-	s.mux.HandleFunc("PUT /api/admin/users/{userID}", s.adminUpdateUser)
-	s.mux.HandleFunc("DELETE /api/admin/users/{userID}", s.adminDeleteUser)
-	s.mux.HandleFunc("GET /api/admin/tts-dictionary", s.adminListTTSAutoDictionary)
-	s.mux.HandleFunc("POST /api/admin/tts-dictionary", s.adminUpsertTTSAutoDictionary)
-	s.mux.HandleFunc("DELETE /api/admin/tts-dictionary", s.adminDeleteTTSAutoDictionary)
-	s.mux.HandleFunc("POST /api/admin/tts-dictionary/import", s.adminImportTTSAutoDictionary)
-	s.mux.HandleFunc("POST /api/admin/channels", s.adminCreateChannel)
-	s.mux.HandleFunc("DELETE /api/admin/channels/{slug}", s.adminDeleteChannel)
-	s.mux.HandleFunc("PUT /api/admin/channels/{slug}/suspend", s.adminSetChannelSuspendRetention)
-	s.mux.HandleFunc("PUT /api/admin/channels/{slug}/grace", s.adminSetChannelSuspendGrace)
-	s.mux.HandleFunc("PUT /api/admin/channels/{slug}/operating-unlimited", s.adminSetChannelOperatingUnlimited)
+	s.mux.HandleFunc("POST /api/owner/login", s.adminPage(s.ownerLogin))
+	s.mux.HandleFunc("GET /api/admin/stats", s.adminPage(s.adminStats))
+	s.mux.HandleFunc("GET /api/admin/sessions", s.adminPage(s.adminSessions))
+	s.mux.HandleFunc("POST /api/admin/sessions/{sessionID}/revoke", s.adminPage(s.adminRevokeSession))
+	s.mux.HandleFunc("POST /api/admin/sessions/revoke-all", s.adminPage(s.adminRevokeAllSessions))
+	s.mux.HandleFunc("GET /api/admin/users", s.adminPage(s.adminUsers))
+	s.mux.HandleFunc("PUT /api/admin/users/{userID}", s.adminPage(s.adminUpdateUser))
+	s.mux.HandleFunc("DELETE /api/admin/users/{userID}", s.adminPage(s.adminDeleteUser))
+	s.mux.HandleFunc("GET /api/admin/tts-dictionary", s.adminPage(s.adminListTTSAutoDictionary))
+	s.mux.HandleFunc("POST /api/admin/tts-dictionary", s.adminPage(s.adminUpsertTTSAutoDictionary))
+	s.mux.HandleFunc("DELETE /api/admin/tts-dictionary", s.adminPage(s.adminDeleteTTSAutoDictionary))
+	s.mux.HandleFunc("POST /api/admin/tts-dictionary/import", s.adminPage(s.adminImportTTSAutoDictionary))
+	s.mux.HandleFunc("POST /api/admin/channels", s.adminPage(s.adminCreateChannel))
+	s.mux.HandleFunc("DELETE /api/admin/channels/{slug}", s.adminPage(s.adminDeleteChannel))
+	s.mux.HandleFunc("PUT /api/admin/channels/{slug}/suspend", s.adminPage(s.adminSetChannelSuspendRetention))
+	s.mux.HandleFunc("PUT /api/admin/channels/{slug}/grace", s.adminPage(s.adminSetChannelSuspendGrace))
+	s.mux.HandleFunc("PUT /api/admin/channels/{slug}/operating-unlimited", s.adminPage(s.adminSetChannelOperatingUnlimited))
 	s.mux.HandleFunc("DELETE /api/admin/messages/{messageID}", s.adminDeleteMessage)
-	s.mux.HandleFunc("GET /api/admin/service-settings", s.adminServiceSettings)
-	s.mux.HandleFunc("PUT /api/admin/service-settings/overview", s.adminUpdateServiceOverview)
-	s.mux.HandleFunc("PUT /api/admin/service-settings/whitelist", s.adminUpdateWhitelistEnabled)
-	s.mux.HandleFunc("POST /api/admin/service-settings/header", s.adminUploadServiceHeader)
-	s.mux.HandleFunc("DELETE /api/admin/service-settings/header", s.adminDeleteServiceHeader)
+	s.mux.HandleFunc("GET /api/admin/service-settings", s.adminPage(s.adminServiceSettings))
+	s.mux.HandleFunc("PUT /api/admin/service-settings/overview", s.adminPage(s.adminUpdateServiceOverview))
+	s.mux.HandleFunc("PUT /api/admin/service-settings/whitelist", s.adminPage(s.adminUpdateWhitelistEnabled))
+	s.mux.HandleFunc("POST /api/admin/service-settings/header", s.adminPage(s.adminUploadServiceHeader))
+	s.mux.HandleFunc("DELETE /api/admin/service-settings/header", s.adminPage(s.adminDeleteServiceHeader))
 	s.mux.HandleFunc("POST /api/logout", s.logout)
 	s.mux.HandleFunc("GET /api/me", s.me)
 	s.mux.HandleFunc("GET /api/me/deck", s.getDeckLayout)
@@ -182,6 +182,8 @@ func (s *Server) publicConfig(w http.ResponseWriter, r *http.Request) {
 		"vapidPublicKey": s.cfg.VAPIDPublicKey,
 		// ホワイトリスト機能のサーバ全体 有効/無効。フロントは入室許可UI・バッヂの出し分けに使う。
 		"whitelistEnabled": s.whitelistEnabled(r.Context()),
+		// 管理ページの有効/無効。無効時はフロントが管理リンクを隠し、管理画面に無効表示を出す。
+		"adminEnabled": s.cfg.AdminEnabled,
 	})
 }
 
@@ -2185,6 +2187,18 @@ type adminUserResponse struct {
 	Subject     string `json:"subject,omitempty"`
 	CreatedAt   string `json:"createdAt"`
 	UpdatedAt   string `json:"updatedAt"`
+}
+
+// adminPage は管理ページ用のハンドラを ADMIN_ENABLED で包む。無効時はルート自体が
+// 存在しないものとして 404 を返し、オーナーログインや管理APIへの到達を防ぐ。
+func (s *Server) adminPage(h http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !s.cfg.AdminEnabled {
+			writeError(w, http.StatusNotFound, "not found")
+			return
+		}
+		h(w, r)
+	}
 }
 
 func (s *Server) requireAdmin(w http.ResponseWriter, r *http.Request) (auth.SessionSnapshot, bool) {

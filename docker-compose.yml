@@ -46,7 +46,9 @@ services:
       SESSION_TTL_HOURS: 2160
       SESSION_COOKIE_SECURE: "false"
       CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:-http://localhost:5173}
-      OWNER_PASSWORD: ${OWNER_PASSWORD:?OWNER_PASSWORD is required}
+      # 管理ページ（/admin・オーナーログイン・管理API）の有効/無効。変更後は再起動で反映。
+      ADMIN_ENABLED: ${ADMIN_ENABLED:-false}
+      OWNER_PASSWORD: ${OWNER_PASSWORD:-}
       OWNER_DISPLAY_NAME: ${OWNER_DISPLAY_NAME:-Owner}
       OWNER_HANDLE: ${OWNER_HANDLE:-owner.local}
       OWNER_AVATAR_URL: ${OWNER_AVATAR_URL:-}
@@ -93,7 +95,6 @@ services:
       APP_ENV: development
       DATABASE_URL: postgres://app:app@postgres:5432/app?sslmode=disable
       REDIS_URL: redis://valkey:6379/0
-      OWNER_PASSWORD: ${OWNER_PASSWORD:?OWNER_PASSWORD is required}
       TTS_ENABLED: ${TTS_ENABLED:-true}
       TTS_STORAGE_DIR: /storage/tts
       TTS_VOICEVOX_URLS: http://voicevox:50021,http://voicevox-2:50021

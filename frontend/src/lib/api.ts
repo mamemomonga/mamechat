@@ -100,6 +100,8 @@ export function getPublicConfig() {
     vapidPublicKey?: string;
     // ホワイトリスト機能のサーバ全体 有効/無効（未設定=無効）。入室許可UI・バッヂの出し分けに使う。
     whitelistEnabled?: boolean;
+    // 管理ページ（ADMIN_ENABLED）の有効/無効。無効時は管理リンクを出さない。
+    adminEnabled?: boolean;
   }>("/api/config");
 }
 
